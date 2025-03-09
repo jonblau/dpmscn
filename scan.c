@@ -257,9 +257,10 @@ int eval_var (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max)
 
           if (dpm[i].var > var_min && dpm[i].var < var_max)
           {
+               if (dsc->inc_cnt > 199) { fprintf (stderr, "Abnormal increase count, exiting...\n") ; exit (1) ; }
+
                dsc->inc_lba[dsc->inc_cnt] = sector ;
                dsc->inc_cnt += 1 ;
-               if (dsc->inc_cnt > 200) { fprintf (stderr, "Abnormal increase count, exiting...\n") ; exit (1) ; }
                i += 1 ;
                sector += mds->itv ;
                continue ;
@@ -269,9 +270,10 @@ int eval_var (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max)
 
           if (dpm[i].var < -var_min && dpm[i].var > -var_max)
           {
+               if (dsc->dec_cnt > 199) { fprintf (stderr, "Abnormal decrease count, exiting...\n") ; exit (1) ; }
+
                dsc->dec_lba[dsc->dec_cnt] = sector ;
                dsc->dec_cnt += 1 ;
-               if (dsc->dec_cnt > 200) { fprintf (stderr, "Abnormal decrease count, exiting...\n") ; exit (1) ; }
                i += 1 ;
                sector += mds->itv ;
                continue ;
@@ -316,9 +318,10 @@ int eval_var_no_false (MDS *mds, DPM *dpm, DISC *dsc)
                // true positive
                // now determining the first increase sector
 
+               if (dsc->inc_cnt > 199) { fprintf (stderr, "Abnormal increase count, exiting...\n") ; exit (1) ; }
+
                dsc->inc_lba[dsc->inc_cnt] = sector ;
                dsc->inc_cnt += 1 ;
-               if (dsc->inc_cnt > 200) { fprintf (stderr, "Abnormal increase count, exiting...\n") ; exit (1) ; }
                i += 2 ;
                sector += mds->itv * 2 ;
                continue ;
@@ -349,6 +352,8 @@ int eval_var_no_false (MDS *mds, DPM *dpm, DISC *dsc)
                // true positive
                // now determining the last decrease sector
 
+               if (dsc->dec_cnt > 199) { fprintf (stderr, "Abnormal decrease count, exiting...\n") ; exit (1) ; }
+
                dsc->dec_lba[dsc->dec_cnt] = sector ;
 
                if (dpm[i+1].var < -3)
@@ -358,7 +363,6 @@ int eval_var_no_false (MDS *mds, DPM *dpm, DISC *dsc)
                     dsc->dec_lba[dsc->dec_cnt] += mds->itv ;
 
                dsc->dec_cnt += 1 ;
-               if (dsc->dec_cnt > 200) { fprintf (stderr, "Abnormal decrease count, exiting...\n") ; exit (1) ; }
                i += 2 ;
                sector += mds->itv * 2 ;
                continue ;
@@ -414,16 +418,17 @@ int seek_reg (MDS *mds, DISC *dsc)
      if (dsc->inc_cnt > 0)
      {
           dsc->stt_lba[0] = dsc->inc_lba[0] ;
-          dsc->stt_cnt++ ;
+          dsc->stt_cnt += 1 ;
      }
 
      for (int i = 1 ; i < dsc->inc_cnt ; i++)
      {
           if (dsc->inc_lba[i] - dsc->inc_lba[i-1] > threshold)
           {
+               if (dsc->stt_cnt > 9) { fprintf (stderr, "Abnormal start count, exiting...\n") ; exit (1) ; }
+
                dsc->stt_lba[dsc->stt_cnt] = dsc->inc_lba[i] ;
-               dsc->stt_cnt++ ;
-               if (dsc->stt_cnt > 10) { fprintf (stderr, "Abnormal start count, exiting...\n") ; exit (1) ; }
+               dsc->stt_cnt += 1 ;
           }
      }
 
@@ -433,16 +438,17 @@ int seek_reg (MDS *mds, DISC *dsc)
      {
           if (dsc->dec_lba[i] - dsc->dec_lba[i-1] > threshold)
           {
+               if (dsc->stp_cnt > 8) { fprintf (stderr, "Abnormal stop count, exiting...\n") ; exit (1) ; }
+
                dsc->stp_lba[dsc->stp_cnt] = dsc->dec_lba[i-1] ;
-               dsc->stp_cnt++ ;
-               if (dsc->stp_cnt > 9) { fprintf (stderr, "Abnormal stop count, exiting...\n") ; exit (1) ; }
+               dsc->stp_cnt += 1 ;
           }
      }
 
      if (dsc->dec_cnt > 0)
      {
           dsc->stp_lba[dsc->stp_cnt] = dsc->dec_lba[dsc->dec_cnt-1] ;
-          dsc->stp_cnt++ ;
+          dsc->stp_cnt += 1 ;
      }
 
      return 0 ;
