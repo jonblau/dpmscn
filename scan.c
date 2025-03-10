@@ -575,21 +575,18 @@ int show_dsc (DISC *dsc)
           printf ("          \t %ld sectors\n", reg_len) ;
      }
 
-     if (reg_cnt > 1)
+     printf ("\n") ;
+
+     unsigned long itv_len = 0 ;
+
+     for (int i = 0 ; i < reg_cnt-1 ; i++)
      {
-          printf ("\n") ;
+          itv_len = dsc->stt_lba[i+1] - dsc->stp_lba[i] ;
 
-          unsigned long itv_len = 0 ;
-
-          for (int i = 0 ; i < reg_cnt-1 ; i++)
-          {
-               itv_len = dsc->stt_lba[i+1] - dsc->stp_lba[i] ;
-
-               printf ("Gap %d    \t %ld sectors\n", i+1, itv_len) ;
-          }
+          printf ("Gap %d    \t %ld sectors\n", i+1, itv_len) ;
      }
 
-     printf ("\n") ;
+     if (reg_cnt > 1) { printf ("\n") ; }
 
      return 0 ;
 }
