@@ -686,7 +686,7 @@ int main (int argc, char **argv)
      {
           lay_brk = (dsc.brk_smp + 1) * mds.itv ;
 
-          printf ("Break      \t LBA <= %ld\n", lay_brk) ;
+          printf ("Break      \t LBA ~ %ld\n", lay_brk) ;
           printf ("Path       \t %s\n\n", dsc.trk_pth) ;
      }
 
