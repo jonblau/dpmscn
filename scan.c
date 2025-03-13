@@ -673,6 +673,7 @@ int main (int argc, char **argv)
      show_dpm (&mds, dpm, &dsc) ;
 
      free (dpm) ;
+     dpm = NULL ;
 
      printf ("Format     \t %s %s\n\n", mds.dvd ? "DVD" : "CD", mds.mod) ;
 
@@ -715,6 +716,7 @@ int main (int argc, char **argv)
      show_spk (&dsc, spk) ;
 
      free (spk) ;
+     spk = NULL ;
 
      return 0 ;
 }
