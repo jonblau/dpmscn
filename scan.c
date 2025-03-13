@@ -58,6 +58,7 @@ typedef struct disc
      unsigned char stt_cnt ;
      unsigned char stp_cnt ;
      unsigned int brk_smp ;
+     unsigned long brk_lba ;
      char trk_pth[9] ;
      unsigned int tim_ini ;
      unsigned int tim_lst ;
@@ -214,6 +215,8 @@ int read_dpm (FILE *file, MDS *mds, DPM *dpm)
 
 int seek_brk (MDS *mds, DPM *dpm, DISC *dsc)
 {
+     if (! mds->dvd || mds->lay < 2) { return 0 ; }
+
      unsigned long sct_inf = mds->sct / 2 ;
      unsigned long sct_sup = 2294922 ;                      // for 4.7 GB as 4700000000 / 2048
 
@@ -221,6 +224,8 @@ int seek_brk (MDS *mds, DPM *dpm, DISC *dsc)
      unsigned int smp_sup = sct_sup / mds->itv - 1 ;
 
      unsigned int tim_min = dpm[smp_inf].tim ;
+
+     dsc->brk_smp = smp_inf ;
 
      for (int i = smp_inf ; i < smp_sup ; i++)
      {
@@ -231,6 +236,8 @@ int seek_brk (MDS *mds, DPM *dpm, DISC *dsc)
           }
      }
 
+     dsc->brk_lba = (dsc->brk_smp + 1) * mds->itv ;
+
      if (dpm[smp_sup+1].tim > tim_min + 100)
           sprintf (dsc->trk_pth, "parallel") ;
      else
@@ -239,7 +246,7 @@ int seek_brk (MDS *mds, DPM *dpm, DISC *dsc)
      return 0 ;
 }
 
-int eval_var (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max)
+int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max)
 {
      unsigned long sector = 0 ;
      unsigned int samples = 0 ;
@@ -285,7 +292,7 @@ int eval_var (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max)
      return 0 ;
 }
 
-int eval_var_no_false (MDS *mds, DPM *dpm, DISC *dsc)
+int eval_dpm_no_false (MDS *mds, DPM *dpm, DISC *dsc)
 {
      unsigned long sector = 0 ;
 
@@ -379,16 +386,16 @@ int seek_spk (MDS *mds, DPM *dpm, DISC *dsc)
      switch (mds->itv)
      {
           case 50 :
-               eval_var_no_false (mds, dpm, dsc) ;
+               eval_dpm_no_false (mds, dpm, dsc) ;
                break ;
           case 256 :
-               eval_var (mds, dpm, dsc, 10, 60) ;           // requires more testing
+               eval_dpm (mds, dpm, dsc, 10, 60) ;           // requires more testing
                break ;
           case 500 :
-               eval_var (mds, dpm, dsc, 100, 400) ;         // requires much more testing
+               eval_dpm (mds, dpm, dsc, 100, 400) ;         // requires much more testing
                break ;
           case 2048 :
-               eval_var (mds, dpm, dsc, 100, 400) ;         // requires much more testing
+               eval_dpm (mds, dpm, dsc, 100, 400) ;         // requires much more testing
                break ;
      }
 
@@ -400,6 +407,54 @@ int seek_spk (MDS *mds, DPM *dpm, DISC *dsc)
           dsc->tim_lst = dpm[mds->smp-1].tim ;
 
      dsc->var_rat = (float) (dsc->tim_ini - dsc->tim_lst) * 100 / dsc->var_sum ;
+
+     return 0 ;
+}
+
+int show_dpm (MDS *mds, DPM *dpm, DISC *dsc)
+{
+     unsigned long sector = 0 ;
+     unsigned char inc_num = 0 ;
+     unsigned char dec_num = 0 ;
+     bool increase = false ;
+     char mark = ' ' ;
+
+     for (int i = 0 ; i < mds->smp ; i++)
+     {
+          sector += mds->itv ;
+          increase = false ;
+
+          for (int j = inc_num ; j < dsc->inc_cnt ; j++)
+          {
+               if (sector == dsc->inc_lba[j])
+               {
+                    printf ("INCREASE\n") ;
+                    increase = true ;
+                    mark = '*' ;
+                    inc_num++ ;
+                    break ;
+               }
+          }
+
+          if (increase == false)
+          {
+               for (int j = dec_num ; j < dsc->dec_cnt ; j++)
+               {
+                    if (sector == dsc->dec_lba[j])
+                    {
+                         printf ("DECREASE\n") ;
+                         mark = ' ' ;
+                         dec_num++ ;
+                         break ;
+                    }
+               }
+          }
+
+          printf ("%+d \t %d \t %ld   \t [%ld - %ld]   \t%c\n",
+                  dpm[i].var, dpm[i].tim, dpm[i].raw, sector - mds->itv, sector, mark) ;
+     }
+
+     printf ("\n") ;
 
      return 0 ;
 }
@@ -454,61 +509,50 @@ int seek_reg (MDS *mds, DISC *dsc)
      return 0 ;
 }
 
-int show_dpm (MDS *mds, DPM *dpm, DISC *dsc)
+int show_mds (MDS *mds)
 {
-     unsigned long sector = 0 ;
-     unsigned char inc_num = 0 ;
-     unsigned char dec_num = 0 ;
-     bool increase = false ;
-     char mark = ' ' ;
+     printf ("Format     \t %s %s\n\n", mds->dvd ? "DVD" : "CD", mds->mod) ;
 
-     for (int i = 0 ; i < mds->smp ; i++)
-     {
-          sector += mds->itv ;
-          increase = false ;
-
-          for (int j = inc_num ; j < dsc->inc_cnt ; j++)
-          {
-               if (sector == dsc->inc_lba[j])
-               {
-                    printf ("INCREASE\n") ;
-                    increase = true ;
-                    mark = '*' ;
-                    inc_num++ ;
-                    break ;
-               }
-          }
-
-          if (increase == false)
-          {
-               for (int j = dec_num ; j < dsc->dec_cnt ; j++)
-               {
-                    if (sector == dsc->dec_lba[j])
-                    {
-                         printf ("DECREASE\n") ;
-                         mark = ' ' ;
-                         dec_num++ ;
-                         break ;
-                    }
-               }
-          }
-
-          printf ("%+d \t %d \t %ld   \t [%ld - %ld]   \t%c\n",
-                  dpm[i].var, dpm[i].tim, dpm[i].raw, sector - mds->itv, sector, mark) ;
-     }
-
-     printf ("\n") ;
+     printf ("Size       \t %ld sectors\n", mds->sct) ;
+     printf ("Interval   \t %d sectors\n", mds->itv) ;
+     printf ("Measure    \t %d samples\n\n", mds->smp) ;
 
      return 0 ;
 }
 
-int eval_dsc (DISC *dsc)
+int show_dsc (DISC *dsc)
+{
+     if (dsc->brk_lba)
+     {
+          printf ("Break      \t LBA ~ %ld\n", dsc->brk_lba) ;
+          printf ("Path       \t %s\n\n", dsc->trk_pth) ;
+     }
+
+     printf ("Timing     \t %d to %d\n", dsc->tim_ini, dsc->tim_lst) ;
+     printf ("Variation  \t %d\n", dsc->var_sum) ;
+     printf ("Curve      \t %.2f %%\n\n", dsc->var_rat) ;
+
+     if (dsc->err_cnt)
+     {
+          printf ("Accuracy   \t %d errors\n\n", dsc->err_cnt) ;
+     }
+
+     printf ("Region     \t %d starts\n", dsc->stt_cnt) ;
+     printf ("           \t %d stops\n\n", dsc->stp_cnt) ;
+
+     printf ("Spike      \t %d increases\n", dsc->inc_cnt) ;
+     printf ("           \t %d decreases\n\n", dsc->dec_cnt) ;
+
+     return 0 ;
+}
+
+int eval_reg (DISC *dsc)
 {
      // evaluate disc density layout consistency using count homogeneity
 
      if (dsc->stp_cnt == 0)
      {
-          printf ("Layout     \t Normal density\n") ; exit (0) ;
+          printf ("Layout     \t Normal density\n") ; exit (EXIT_SUCCESS) ;
      }
      else if (dsc->inc_cnt != dsc->dec_cnt || dsc->stt_cnt != dsc->stp_cnt)
      {
@@ -558,7 +602,7 @@ int eval_dsc (DISC *dsc)
      return 0 ;
 }
 
-int show_dsc (DISC *dsc)
+int show_reg (DISC *dsc)
 {
      unsigned char reg_cnt = dsc->stp_cnt ;
      unsigned char spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;
@@ -643,8 +687,6 @@ int main (int argc, char **argv)
 
      char *path = argv[1] ;
 
-     // data retrieval
-
      FILE *file = fopen (path, "rb") ;
      if (file == NULL) { exit (EXIT_FAILURE) ; }
 
@@ -660,52 +702,21 @@ int main (int argc, char **argv)
      fclose (file) ;
      file = NULL ;
 
-     // data analysis
-
      DISC dsc = {0} ;
 
-     if (mds.dvd && mds.lay == 2)
-          seek_brk (&mds, dpm, &dsc) ;
-
+     seek_brk (&mds, dpm, &dsc) ;
      seek_spk (&mds, dpm, &dsc) ;
-     seek_reg (&mds, &dsc) ;
-
      show_dpm (&mds, dpm, &dsc) ;
 
      free (dpm) ;
      dpm = NULL ;
 
-     printf ("Format     \t %s %s\n\n", mds.dvd ? "DVD" : "CD", mds.mod) ;
-
-     printf ("Size       \t %ld sectors\n", mds.sct) ;
-     printf ("Interval   \t %d sectors\n", mds.itv) ;
-     printf ("Measure    \t %d samples\n\n", mds.smp) ;
-
-     unsigned long lay_brk = 0 ;
-
-     if (mds.dvd && mds.lay == 2)
-     {
-          lay_brk = (dsc.brk_smp + 1) * mds.itv ;
-
-          printf ("Break      \t LBA ~ %ld\n", lay_brk) ;
-          printf ("Path       \t %s\n\n", dsc.trk_pth) ;
-     }
-
-     printf ("Timing     \t %d to %d\n", dsc.tim_ini, dsc.tim_lst) ;
-     printf ("Variation  \t %d\n", dsc.var_sum) ;
-     printf ("Curve      \t %.2f %%\n\n", dsc.var_rat) ;
-
-     if (! mds.dvd)
-          printf ("Accuracy   \t %d errors\n\n", dsc.err_cnt) ;
-
-     printf ("Region     \t %d starts\n", dsc.stt_cnt) ;
-     printf ("           \t %d stops\n\n", dsc.stp_cnt) ;
-
-     printf ("Spike      \t %d increases\n", dsc.inc_cnt) ;
-     printf ("           \t %d decreases\n\n", dsc.dec_cnt) ;
-
-     eval_dsc (&dsc) ;
+     seek_reg (&mds, &dsc) ;
+     show_mds (&mds) ;
      show_dsc (&dsc) ;
+
+     eval_reg (&dsc) ;
+     show_reg (&dsc) ;
 
      unsigned char spr_cnt = dsc.dec_cnt / dsc.stp_cnt ;
 
