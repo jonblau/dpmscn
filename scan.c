@@ -60,11 +60,13 @@ typedef struct disc
      unsigned int brk_smp ;
      unsigned long brk_lba ;
      char trk_pth[9] ;
-     unsigned int tim_ini ;
-     unsigned int tim_lst ;
      unsigned int err_cnt ;
      unsigned int var_sum ;
+     unsigned int lay_0_var ;
+     unsigned int lay_1_var ;
      float var_rat ;
+     float lay_0_rat ;
+     float lay_1_rat ;
 }
 DISC ;
 
@@ -227,7 +229,7 @@ int seek_brk (MDS *mds, DPM *dpm, DISC *dsc)
 
      dsc->brk_smp = smp_inf ;
 
-     for (int i = smp_inf ; i < smp_sup ; i++)
+     for (int i = smp_inf ; i < smp_sup + 1 ; i++)
      {
           if (tim_min >= dpm[i].tim)
           {
@@ -237,11 +239,18 @@ int seek_brk (MDS *mds, DPM *dpm, DISC *dsc)
      }
 
      dsc->brk_lba = (dsc->brk_smp + 1) * mds->itv ;
+     sprintf (dsc->trk_pth, "opposite") ;
 
-     if (dpm[smp_sup+1].tim > tim_min + 100)
-          sprintf (dsc->trk_pth, "parallel") ;
-     else
-          sprintf (dsc->trk_pth, "opposite") ;
+     for (int i = dsc->brk_smp ; i < smp_sup + 1 ; i++)
+     {
+          if (dpm[i].var > 100)
+          {
+               dsc->brk_smp = i ;
+               dsc->brk_lba = (dsc->brk_smp + 1) * mds->itv ;
+               sprintf (dsc->trk_pth, "parallel") ;
+               break ;
+          }
+     }
 
      return 0 ;
 }
@@ -249,14 +258,8 @@ int seek_brk (MDS *mds, DPM *dpm, DISC *dsc)
 int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max)
 {
      unsigned long sector = 0 ;
-     unsigned int samples = 0 ;
 
-     if (mds->dvd && mds->lay == 2)
-          samples = dsc->brk_smp + 1 ;                      // using sample count from layer 0
-     else
-          samples = mds->smp ;
-
-     for (int i = 0 ; i < samples ; i++)
+     for (int i = 0 ; i < dsc->brk_smp + 1 ; i++)
      {
           sector += mds->itv ;
 
@@ -288,6 +291,44 @@ int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max)
 
           dsc->var_sum += abs (dpm[i].var) ;
      }
+
+     dsc->lay_0_var = dsc->var_sum ;
+     dsc->var_sum = 0 ;
+
+     for (int i = dsc->brk_smp + 1 ; i < mds->smp ; i++)
+     {
+          sector += mds->itv ;
+
+          // spike increase detection
+
+          if (dpm[i].var > var_min && dpm[i].var < var_max)
+          {
+               if (dsc->inc_cnt > 199) { fprintf (stderr, "Abnormal increase count, exiting...\n") ; exit (1) ; }
+
+               dsc->inc_lba[dsc->inc_cnt] = sector ;
+               dsc->inc_cnt += 1 ;
+               i += 1 ;
+               sector += mds->itv ;
+               continue ;
+          }
+
+          // spike decrease detection
+
+          if (dpm[i].var < -var_min && dpm[i].var > -var_max)
+          {
+               if (dsc->dec_cnt > 199) { fprintf (stderr, "Abnormal decrease count, exiting...\n") ; exit (1) ; }
+
+               dsc->dec_lba[dsc->dec_cnt] = sector ;
+               dsc->dec_cnt += 1 ;
+               i += 1 ;
+               sector += mds->itv ;
+               continue ;
+          }
+
+          dsc->var_sum += abs (dpm[i].var) ;
+     }
+
+     dsc->lay_1_var = dsc->var_sum ;
 
      return 0 ;
 }
@@ -399,14 +440,13 @@ int seek_spk (MDS *mds, DPM *dpm, DISC *dsc)
                break ;
      }
 
-     dsc->tim_ini = dpm[0].tim ;
-
-     if (mds->dvd && mds->lay == 2)
-          dsc->tim_lst = dpm[dsc->brk_smp].tim ;            // using last timing from layer 0
+     if (dsc->lay_0_var)
+     {
+          dsc->lay_0_rat = (float) (dpm[0].tim - dpm[dsc->brk_smp].tim) * 100 / dsc->lay_0_var ;
+          dsc->lay_1_rat = (float) abs (dpm[dsc->brk_smp+1].tim - dpm[mds->smp-1].tim) * 100 / dsc->lay_1_var ;
+     }
      else
-          dsc->tim_lst = dpm[mds->smp-1].tim ;
-
-     dsc->var_rat = (float) (dsc->tim_ini - dsc->tim_lst) * 100 / dsc->var_sum ;
+          dsc->var_rat = (float) (dpm[0].tim - dpm[mds->smp-1].tim) * 100 / dsc->var_sum ;
 
      return 0 ;
 }
@@ -520,7 +560,7 @@ int show_mds (MDS *mds)
      return 0 ;
 }
 
-int show_dsc (DISC *dsc)
+int show_dsc (MDS *mds, DPM *dpm, DISC *dsc)
 {
      if (dsc->brk_lba)
      {
@@ -528,9 +568,24 @@ int show_dsc (DISC *dsc)
           printf ("Path       \t %s\n\n", dsc->trk_pth) ;
      }
 
-     printf ("Timing     \t %d to %d\n", dsc->tim_ini, dsc->tim_lst) ;
-     printf ("Variation  \t %d\n", dsc->var_sum) ;
-     printf ("Curve      \t %.2f %%\n\n", dsc->var_rat) ;
+     if (dsc->lay_0_var)
+     {
+          printf ("Layer      \t # 0 : bottom\n") ;
+          printf ("Timing     \t %d to %d\n", dpm[0].tim, dpm[dsc->brk_smp].tim) ;
+          printf ("Variation  \t %d\n", dsc->lay_0_var) ;
+          printf ("Curve      \t %.2f %%\n\n", dsc->lay_0_rat) ;
+
+          printf ("Layer      \t # 1 : top\n") ;
+          printf ("Timing     \t %d to %d\n", dpm[dsc->brk_smp+1].tim, dpm[mds->smp-1].tim) ;
+          printf ("Variation  \t %d\n", dsc->lay_1_var) ;
+          printf ("Curve      \t %.2f %%\n\n", dsc->lay_1_rat) ;
+     }
+     else
+     {
+          printf ("Timing     \t %d to %d\n", dpm[0].tim, dpm[mds->smp-1].tim) ;
+          printf ("Variation  \t %d\n", dsc->var_sum) ;
+          printf ("Curve      \t %.2f %%\n\n", dsc->var_rat) ;
+     }
 
      if (dsc->err_cnt)
      {
@@ -683,7 +738,7 @@ int show_spk (DISC *dsc, SPIKE *spk)
 
 int main (int argc, char **argv)
 {
-	if (argc < 2) { exit (1) ; }
+     if (argc < 2) { exit (1) ; }
 
      char *path = argv[1] ;
 
@@ -708,12 +763,12 @@ int main (int argc, char **argv)
      seek_spk (&mds, dpm, &dsc) ;
      show_dpm (&mds, dpm, &dsc) ;
 
-     free (dpm) ;
-     dpm = NULL ;
-
      seek_reg (&mds, &dsc) ;
      show_mds (&mds) ;
-     show_dsc (&dsc) ;
+     show_dsc (&mds, dpm, &dsc) ;
+
+     free (dpm) ;
+     dpm = NULL ;
 
      eval_reg (&dsc) ;
      show_reg (&dsc) ;
