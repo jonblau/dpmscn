@@ -638,7 +638,7 @@ int eval_reg (DISC *dsc)
 {
      // evaluate disc density layout consistency using count homogeneity
 
-     if (dsc->stp_cnt == 0)
+     if (dsc->stt_cnt == 0 && dsc->stp_cnt == 0)
      {
           printf ("Layout     \t Normal density\n") ; exit (EXIT_SUCCESS) ;
      }
