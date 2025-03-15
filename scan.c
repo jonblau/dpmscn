@@ -57,6 +57,8 @@ typedef struct disc
      unsigned long stp_lba[10] ;
      unsigned char stt_cnt ;
      unsigned char stp_cnt ;
+     signed int inc_amp[2] ;
+     signed int dec_amp[2] ;
      unsigned int brk_smp ;
      unsigned long brk_lba ;
      char trk_pth[9] ;
@@ -422,6 +424,28 @@ int eval_dpm_no_false (MDS *mds, DPM *dpm, DISC *dsc)
      return 0 ;
 }
 
+int calc_inc_amp (MDS *mds, DPM *dpm, DISC *dsc)
+{
+     unsigned int fis = dsc->inc_lba[0] / mds->itv - 1 ;
+     unsigned int lis = dsc->inc_lba[dsc->inc_cnt-1] / mds->itv - 1 ;
+
+     dsc->inc_amp[0] = dpm[fis].var + dpm[fis+1].var + dpm[fis+2].var ;
+     dsc->inc_amp[1] = dpm[lis].var + dpm[lis+1].var + dpm[lis+2].var ;
+
+     return 0 ;
+}
+
+int calc_dec_amp (MDS *mds, DPM *dpm, DISC *dsc)
+{
+     unsigned int fds = dsc->dec_lba[0] / mds->itv - 1 ;
+     unsigned int lds = dsc->dec_lba[dsc->dec_cnt-1] / mds->itv - 1 ;
+
+     dsc->dec_amp[0] = dpm[fds].var + dpm[fds-1].var + dpm[fds-2].var ;
+     dsc->dec_amp[1] = dpm[lds].var + dpm[lds-1].var + dpm[lds-2].var ;
+
+     return 0 ;
+}
+
 int seek_spk (MDS *mds, DPM *dpm, DISC *dsc)
 {
      switch (mds->itv)
@@ -439,6 +463,12 @@ int seek_spk (MDS *mds, DPM *dpm, DISC *dsc)
                eval_dpm (mds, dpm, dsc, 100, 400) ;         // requires much more testing
                break ;
      }
+
+     if (dsc->inc_cnt)
+          calc_inc_amp (mds, dpm, dsc) ;
+
+     if (dsc->dec_cnt)
+          calc_dec_amp (mds, dpm, dsc) ;
 
      if (dsc->lay_0_var)
      {
@@ -597,6 +627,9 @@ int show_dsc (MDS *mds, DPM *dpm, DISC *dsc)
 
      printf ("Spike      \t %d increases\n", dsc->inc_cnt) ;
      printf ("           \t %d decreases\n\n", dsc->dec_cnt) ;
+
+     printf ("Amplitude  \t %+d to %+d\n", dsc->inc_amp[0], dsc->inc_amp[1]) ;
+     printf ("           \t %+d to %+d\n\n", dsc->dec_amp[0], dsc->dec_amp[1]) ;
 
      return 0 ;
 }
