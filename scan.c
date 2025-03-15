@@ -587,7 +587,7 @@ int show_dsc (MDS *mds, DPM *dpm, DISC *dsc)
           printf ("Curve      \t %.2f %%\n\n", dsc->var_rat) ;
      }
 
-     if (dsc->err_cnt)
+     if (mds->itv == 50)
      {
           printf ("Accuracy   \t %d errors\n\n", dsc->err_cnt) ;
      }
