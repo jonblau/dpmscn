@@ -27,7 +27,7 @@
 
 typedef struct mds
 {
-     unsigned char fmt ;
+     bool cd ;
      bool dvd ;
      unsigned int ptr ;
      unsigned int lay ;
@@ -92,13 +92,23 @@ int read_mds (FILE *file, MDS *mds)
           fprintf (stderr, "No MDS\n") ; exit (1) ;
      }
 
-     fseek (file, 0x12, SEEK_SET) ;
-     fread (&mds->fmt, 1, 1, file) ;
+     unsigned char byte = 0 ;
 
-     switch (mds->fmt)
+     fseek (file, 0x11, SEEK_SET) ;
+     fread (&byte, 1, 1, file) ;
+
+     if (byte != 0x05)
+     {
+          fprintf (stderr, "Unsupported file version\n") ; exit (1) ;
+     }
+
+     fseek (file, 0x12, SEEK_SET) ;
+     fread (&byte, 1, 1, file) ;
+
+     switch (byte)
      {
           case 0x00 :
-               mds->dvd = false ; break ;
+               mds->cd = true ; break ;
           case 0x10 :
                mds->dvd = true ; break ;
           default :
@@ -118,33 +128,33 @@ int read_mds (FILE *file, MDS *mds)
                mds->lay = 2 ; break ;
      }
 
-     unsigned char value = 0 ;
-
-     if (mds->dvd && mds->lay == 1)
-          sprintf (mds->mod, "single layer") ;
-     else if (mds->dvd && mds->lay == 2)
-          sprintf (mds->mod, "double layer") ;
-     else
+     if (mds->cd)
      {
           fseek (file, 0x168, SEEK_SET) ;
-          fread (&value, 1, 1, file) ;
+          fread (&byte, 1, 1, file) ;
 
-          switch (value)
+          byte &= 0x0F ;
+
+          switch (byte)
           {
-               case 0xA9 :
+               case 0x09 :
                     sprintf (mds->mod, "audio") ; break ;
-               case 0xAA :
+               case 0x0A :
                     sprintf (mds->mod, "mode 1") ; break ;
-               case 0xAB :
+               case 0x0B :
                     sprintf (mds->mod, "mode 2") ; break ;
-               case 0xAC :
+               case 0x0C :
                     sprintf (mds->mod, "mode 2 form 1") ; break ;
-               case 0xAD :
+               case 0x0D :
                     sprintf (mds->mod, "mode 2 form 2") ; break ;
           }
      }
+     else if (mds->dvd && mds->lay == 1)
+          sprintf (mds->mod, "single layer") ;
+     else if (mds->dvd && mds->lay == 2)
+          sprintf (mds->mod, "double layer") ;
 
-     int offset = 0 ;
+     unsigned int offset = 0 ;
 
      fseek (file, mds->ptr, SEEK_SET) ;
      fread (&mds->loc, 1, 1, file) ;
@@ -152,41 +162,35 @@ int read_mds (FILE *file, MDS *mds)
      switch (mds->loc)
      {
           case 0x01 :
-               offset = 16 ; break ;
+               offset = mds->ptr + 16 ; break ;
           case 0x02 :
-               offset = 20 ; break ;
+               offset = mds->ptr + 20 ; break ;
           default :
                fprintf (stderr, "Unknown header structure\n") ; exit (1) ;
      }
 
-     fseek (file, mds->ptr + offset, SEEK_SET) ;
+     fseek (file, offset, SEEK_SET) ;
      fread (&mds->itv, 2, 1, file) ;
 
      offset += 4 ;
 
-     fseek (file, mds->ptr + offset, SEEK_SET) ;
+     fseek (file, offset, SEEK_SET) ;
      fread (&mds->smp, 2, 1, file) ;
 
      switch (mds->itv)
      {
           case 50 :
           case 500 :
-               offset = -32 ; break ;
+               offset = 100 ; break ;
           case 256 :
           case 2048 :
-               offset = -96 ; break ;
+               offset = mds->ptr - 128 ; break ;
           default :
                fprintf (stderr, "Unknown interval value\n") ; exit (1) ;
      }
 
-     fseek (file, mds->ptr + offset, SEEK_SET) ;
-     fread (&mds->sct, 3, 1, file) ;                        // last track size only
-
-     // NOT IMPLEMENTED
-     // session count
-     // session size
-     // track count
-     // track size
+     fseek (file, offset, SEEK_SET) ;
+     fread (&mds->sct, 3, 1, file) ;
 
      return 0 ;
 }
@@ -219,7 +223,7 @@ int read_dpm (FILE *file, MDS *mds, DPM *dpm)
 
 int seek_brk (MDS *mds, DPM *dpm, DISC *dsc)
 {
-     if (! mds->dvd || mds->lay < 2) { return 0 ; }
+     if (mds->cd || mds->lay < 2) { return 0 ; }
 
      unsigned long sct_inf = mds->sct / 2 ;
      unsigned long sct_sup = 2294922 ;                      // for 4.7 GB as 4700000000 / 2048
@@ -533,10 +537,10 @@ int seek_reg (MDS *mds, DISC *dsc)
 {
      unsigned int threshold = 0 ;
 
-     if (mds->dvd)
-          threshold = 40000 ;
-     else
+     if (mds->cd)
           threshold = 4000 ;
+     else if (mds->dvd)
+          threshold = 40000 ;
 
      // region start detection
 
@@ -581,7 +585,7 @@ int seek_reg (MDS *mds, DISC *dsc)
 
 int show_mds (MDS *mds)
 {
-     printf ("Format     \t %s %s\n\n", mds->dvd ? "DVD" : "CD", mds->mod) ;
+     printf ("Format     \t %s %s\n\n", mds->cd ? "CD" : "DVD", mds->mod) ;
 
      printf ("Size       \t %ld sectors\n", mds->sct) ;
      printf ("Interval   \t %d sectors\n", mds->itv) ;
