@@ -89,7 +89,8 @@ int read_mds (FILE *file, MDS *mds)
 
      if (memcmp ("MEDIA DESCRIPTOR", file_id, 16) != 0)
      {
-          fprintf (stderr, "No MDS\n") ; exit (1) ;
+          fprintf (stderr, "No MDS\n") ;
+          exit (EXIT_FAILURE) ;
      }
 
      unsigned char byte = 0 ;
@@ -99,7 +100,8 @@ int read_mds (FILE *file, MDS *mds)
 
      if (byte != 0x05)
      {
-          fprintf (stderr, "Unsupported file version\n") ; exit (1) ;
+          fprintf (stderr, "Unsupported file version\n") ;
+          exit (EXIT_FAILURE) ;
      }
 
      fseek (file, 0x12, SEEK_SET) ;
@@ -112,7 +114,8 @@ int read_mds (FILE *file, MDS *mds)
           case 0x10 :
                mds->dvd = true ; break ;
           default :
-               fprintf (stderr, "Unknown disc format\n") ; exit (1) ;
+               fprintf (stderr, "Unknown disc format\n") ;
+               exit (EXIT_FAILURE) ;
      }
 
      fseek (file, 0x54, SEEK_SET) ;
@@ -121,7 +124,8 @@ int read_mds (FILE *file, MDS *mds)
      switch (mds->ptr)
      {
           case 0 :
-               fprintf (stderr, "No DPM\n") ; exit (1) ;
+               fprintf (stderr, "No DPM\n") ;
+               exit (EXIT_FAILURE) ;
           case 0x10E8 :
                mds->lay = 1 ; break ;
           case 0x20EC :
@@ -166,7 +170,8 @@ int read_mds (FILE *file, MDS *mds)
           case 0x02 :
                offset = mds->ptr + 20 ; break ;
           default :
-               fprintf (stderr, "Unknown header structure\n") ; exit (1) ;
+               fprintf (stderr, "Unknown header structure\n") ;
+               exit (EXIT_FAILURE) ;
      }
 
      fseek (file, offset, SEEK_SET) ;
@@ -186,7 +191,8 @@ int read_mds (FILE *file, MDS *mds)
           case 2048 :
                offset = mds->ptr - 128 ; break ;
           default :
-               fprintf (stderr, "Unknown interval value\n") ; exit (1) ;
+               fprintf (stderr, "Unknown interval value\n") ;
+               exit (EXIT_FAILURE) ;
      }
 
      fseek (file, offset, SEEK_SET) ;
@@ -273,7 +279,11 @@ int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max)
 
           if (dpm[i].var > var_min && dpm[i].var < var_max)
           {
-               if (dsc->inc_cnt > 199) { fprintf (stderr, "Abnormal increase count, exiting...\n") ; exit (1) ; }
+               if (dsc->inc_cnt > 199)
+               {
+                    fprintf (stderr, "Abnormal increase count, exiting...\n") ;
+                    exit (EXIT_FAILURE) ;
+               }
 
                dsc->inc_lba[dsc->inc_cnt] = sector ;
                dsc->inc_cnt += 1 ;
@@ -286,7 +296,11 @@ int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max)
 
           if (dpm[i].var < -var_min && dpm[i].var > -var_max)
           {
-               if (dsc->dec_cnt > 199) { fprintf (stderr, "Abnormal decrease count, exiting...\n") ; exit (1) ; }
+               if (dsc->dec_cnt > 199)
+               {
+                    fprintf (stderr, "Abnormal decrease count, exiting...\n") ;
+                    exit (EXIT_FAILURE) ;
+               }
 
                dsc->dec_lba[dsc->dec_cnt] = sector ;
                dsc->dec_cnt += 1 ;
@@ -309,7 +323,11 @@ int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max)
 
           if (dpm[i].var > var_min && dpm[i].var < var_max)
           {
-               if (dsc->inc_cnt > 199) { fprintf (stderr, "Abnormal increase count, exiting...\n") ; exit (1) ; }
+               if (dsc->inc_cnt > 199)
+               {
+                    fprintf (stderr, "Abnormal increase count, exiting...\n") ;
+                    exit (EXIT_FAILURE) ;
+               }
 
                dsc->inc_lba[dsc->inc_cnt] = sector ;
                dsc->inc_cnt += 1 ;
@@ -322,7 +340,11 @@ int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max)
 
           if (dpm[i].var < -var_min && dpm[i].var > -var_max)
           {
-               if (dsc->dec_cnt > 199) { fprintf (stderr, "Abnormal decrease count, exiting...\n") ; exit (1) ; }
+               if (dsc->dec_cnt > 199)
+               {
+                    fprintf (stderr, "Abnormal decrease count, exiting...\n") ;
+                    exit (EXIT_FAILURE) ;
+               }
 
                dsc->dec_lba[dsc->dec_cnt] = sector ;
                dsc->dec_cnt += 1 ;
@@ -372,7 +394,11 @@ int eval_dpm_no_false (MDS *mds, DPM *dpm, DISC *dsc)
                // true positive
                // now determining the first increase sector
 
-               if (dsc->inc_cnt > 199) { fprintf (stderr, "Abnormal increase count, exiting...\n") ; exit (1) ; }
+               if (dsc->inc_cnt > 199)
+               {
+                    fprintf (stderr, "Abnormal increase count, exiting...\n") ;
+                    exit (EXIT_FAILURE) ;
+               }
 
                dsc->inc_lba[dsc->inc_cnt] = sector ;
                dsc->inc_cnt += 1 ;
@@ -406,7 +432,11 @@ int eval_dpm_no_false (MDS *mds, DPM *dpm, DISC *dsc)
                // true positive
                // now determining the last decrease sector
 
-               if (dsc->dec_cnt > 199) { fprintf (stderr, "Abnormal decrease count, exiting...\n") ; exit (1) ; }
+               if (dsc->dec_cnt > 199)
+               {
+                    fprintf (stderr, "Abnormal decrease count, exiting...\n") ;
+                    exit (EXIT_FAILURE) ;
+               }
 
                dsc->dec_lba[dsc->dec_cnt] = sector ;
 
@@ -554,7 +584,11 @@ int seek_reg (MDS *mds, DISC *dsc)
      {
           if (dsc->inc_lba[i] - dsc->inc_lba[i-1] > threshold)
           {
-               if (dsc->stt_cnt > 9) { fprintf (stderr, "Abnormal start count, exiting...\n") ; exit (1) ; }
+               if (dsc->stt_cnt > 9)
+               {
+                    fprintf (stderr, "Abnormal start count, exiting...\n") ;
+                    exit (EXIT_FAILURE) ;
+               }
 
                dsc->stt_lba[dsc->stt_cnt] = dsc->inc_lba[i] ;
                dsc->stt_cnt += 1 ;
@@ -567,7 +601,11 @@ int seek_reg (MDS *mds, DISC *dsc)
      {
           if (dsc->dec_lba[i] - dsc->dec_lba[i-1] > threshold)
           {
-               if (dsc->stp_cnt > 8) { fprintf (stderr, "Abnormal stop count, exiting...\n") ; exit (1) ; }
+               if (dsc->stp_cnt > 8)
+               {
+                    fprintf (stderr, "Abnormal stop count, exiting...\n") ;
+                    exit (EXIT_FAILURE) ;
+               }
 
                dsc->stp_lba[dsc->stp_cnt] = dsc->dec_lba[i-1] ;
                dsc->stp_cnt += 1 ;
@@ -644,15 +682,18 @@ int eval_reg (DISC *dsc)
 
      if (dsc->stt_cnt == 0 && dsc->stp_cnt == 0)
      {
-          printf ("Layout     \t Normal density\n") ; exit (EXIT_SUCCESS) ;
+          printf ("Layout     \t Normal density\n") ;
+          exit (EXIT_SUCCESS) ;
      }
      else if (dsc->inc_cnt != dsc->dec_cnt || dsc->stt_cnt != dsc->stp_cnt)
      {
-          fprintf (stderr, "Layout     \t Unreliable\n") ; exit (1) ;
+          fprintf (stderr, "Layout     \t Unreliable\n") ;
+          exit (EXIT_FAILURE) ;
      }
      else if (dsc->dec_cnt % dsc->stp_cnt != 0)
      {
-          fprintf (stderr, "Layout     \t Unreliable\n") ; exit (1) ;
+          fprintf (stderr, "Layout     \t Unreliable\n") ;
+          exit (EXIT_FAILURE) ;
      }
 
      unsigned char reg_cnt = dsc->stp_cnt ;
@@ -687,7 +728,8 @@ int eval_reg (DISC *dsc)
 
           if (ipr_cnt != spr_cnt || dpr_cnt != spr_cnt)
           {
-               fprintf (stderr, "Layout     \t Unreliable\n") ; exit (1) ;
+               fprintf (stderr, "Layout     \t Unreliable\n") ;
+               exit (EXIT_FAILURE) ;
           }
      }
 
@@ -775,7 +817,7 @@ int show_spk (DISC *dsc, SPIKE *spk)
 
 int main (int argc, char **argv)
 {
-     if (argc < 2) { exit (1) ; }
+     if (argc < 2) { exit (EXIT_FAILURE) ; }
 
      char *path = argv[1] ;
 
