@@ -87,7 +87,7 @@ int read_mds (FILE *file, MDS *mds)
      fseek (file, 0x00, SEEK_SET) ;
      fread (file_id, 16, 1, file) ;
 
-     if (memcmp ("MEDIA DESCRIPTOR", file_id, 16) != 0)
+     if (memcmp ("MEDIA DESCRIPTOR", file_id, 16))
      {
           fprintf (stderr, "No MDS\n") ;
           exit (EXIT_FAILURE) ;
@@ -110,9 +110,11 @@ int read_mds (FILE *file, MDS *mds)
      switch (byte)
      {
           case 0x00 :
-               mds->cd = true ; break ;
+               mds->cd = true ;
+               break ;
           case 0x10 :
-               mds->dvd = true ; break ;
+               mds->dvd = true ;
+               break ;
           default :
                fprintf (stderr, "Unknown disc format\n") ;
                exit (EXIT_FAILURE) ;
@@ -123,13 +125,15 @@ int read_mds (FILE *file, MDS *mds)
 
      switch (mds->ptr)
      {
-          case 0 :
+          case 0x0000 :
                fprintf (stderr, "No DPM\n") ;
                exit (EXIT_FAILURE) ;
           case 0x10E8 :
-               mds->lay = 1 ; break ;
+               mds->lay = 1 ;
+               break ;
           case 0x20EC :
-               mds->lay = 2 ; break ;
+               mds->lay = 2 ;
+               break ;
      }
 
      if (mds->cd)
@@ -142,15 +146,20 @@ int read_mds (FILE *file, MDS *mds)
           switch (byte)
           {
                case 0x09 :
-                    sprintf (mds->mod, "audio") ; break ;
+                    sprintf (mds->mod, "audio") ;
+                    break ;
                case 0x0A :
-                    sprintf (mds->mod, "mode 1") ; break ;
+                    sprintf (mds->mod, "mode 1") ;
+                    break ;
                case 0x0B :
-                    sprintf (mds->mod, "mode 2") ; break ;
+                    sprintf (mds->mod, "mode 2") ;
+                    break ;
                case 0x0C :
-                    sprintf (mds->mod, "mode 2 form 1") ; break ;
+                    sprintf (mds->mod, "mode 2 form 1") ;
+                    break ;
                case 0x0D :
-                    sprintf (mds->mod, "mode 2 form 2") ; break ;
+                    sprintf (mds->mod, "mode 2 form 2") ;
+                    break ;
           }
      }
      else if (mds->dvd && mds->lay == 1)
@@ -166,9 +175,11 @@ int read_mds (FILE *file, MDS *mds)
      switch (mds->loc)
      {
           case 0x01 :
-               offset = mds->ptr + 16 ; break ;
+               offset = mds->ptr + 16 ;
+               break ;
           case 0x02 :
-               offset = mds->ptr + 20 ; break ;
+               offset = mds->ptr + 20 ;
+               break ;
           default :
                fprintf (stderr, "Unknown header structure\n") ;
                exit (EXIT_FAILURE) ;
@@ -186,10 +197,12 @@ int read_mds (FILE *file, MDS *mds)
      {
           case 50 :
           case 500 :
-               offset = 100 ; break ;
+               offset = 100 ;
+               break ;
           case 256 :
           case 2048 :
-               offset = mds->ptr - 128 ; break ;
+               offset = mds->ptr - 128 ;
+               break ;
           default :
                fprintf (stderr, "Unknown interval value\n") ;
                exit (EXIT_FAILURE) ;
@@ -203,14 +216,14 @@ int read_mds (FILE *file, MDS *mds)
 
 int read_dpm (FILE *file, MDS *mds, DPM *dpm)
 {
-     int offset = 0 ;
+     unsigned int offset = 0 ;
 
      if (mds->loc == 0x01)
-          offset = 24 ;
+          offset = mds->ptr + 24 ;
      else if (mds->loc == 0x02)
-          offset = 28 ;
+          offset = mds->ptr + 28 ;
 
-     fseek (file, mds->ptr + offset, SEEK_SET) ;
+     fseek (file, offset, SEEK_SET) ;
      fread (&dpm[0].raw, 4, 1, file) ;
 
      dpm[0].tim = dpm[0].raw ;
@@ -229,10 +242,12 @@ int read_dpm (FILE *file, MDS *mds, DPM *dpm)
 
 int seek_brk (MDS *mds, DPM *dpm, DISC *dsc)
 {
-     if (mds->cd || mds->lay < 2) { return 0 ; }
+     if (mds->cd || mds->lay < 2)
+          return 0 ;
 
      unsigned long sct_inf = mds->sct / 2 ;
-     unsigned long sct_sup = 2294922 ;                      // for 4.7 GB as 4700000000 / 2048
+     // 4.7 GB as 4700000000 / 2048 is ~ 2294922 sectors
+     unsigned long sct_sup = 2294922 ;
 
      unsigned int smp_inf = sct_inf / mds->itv - 1 ;
      unsigned int smp_sup = sct_sup / mds->itv - 1 ;
@@ -267,55 +282,32 @@ int seek_brk (MDS *mds, DPM *dpm, DISC *dsc)
      return 0 ;
 }
 
-int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max)
+int seek_spk (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max, int lay_num)
 {
      unsigned long sector = 0 ;
+     unsigned int smp_inf = 0 ;
+     unsigned int smp_sup = 0 ;
 
-     for (int i = 0 ; i < dsc->brk_smp + 1 ; i++)
+     switch (lay_num)
      {
-          sector += mds->itv ;
-
-          // spike increase detection
-
-          if (dpm[i].var > var_min && dpm[i].var < var_max)
-          {
-               if (dsc->inc_cnt > 199)
-               {
-                    fprintf (stderr, "Abnormal increase count, exiting...\n") ;
-                    exit (EXIT_FAILURE) ;
-               }
-
-               dsc->inc_lba[dsc->inc_cnt] = sector ;
-               dsc->inc_cnt += 1 ;
-               i += 1 ;
-               sector += mds->itv ;
-               continue ;
-          }
-
-          // spike decrease detection
-
-          if (dpm[i].var < -var_min && dpm[i].var > -var_max)
-          {
-               if (dsc->dec_cnt > 199)
-               {
-                    fprintf (stderr, "Abnormal decrease count, exiting...\n") ;
-                    exit (EXIT_FAILURE) ;
-               }
-
-               dsc->dec_lba[dsc->dec_cnt] = sector ;
-               dsc->dec_cnt += 1 ;
-               i += 1 ;
-               sector += mds->itv ;
-               continue ;
-          }
-
-          dsc->var_sum += abs (dpm[i].var) ;
+          case -1 :
+               smp_inf = 0 ;
+               smp_sup = mds->smp ;
+               break ;
+          case 0 :
+               smp_inf = 0 ;
+               smp_sup = dsc->brk_smp + 1 ;
+               break ;
+          case 1 :
+               smp_inf = dsc->brk_smp + 1 ;
+               smp_sup = mds->smp ;
+               break ;
      }
 
-     dsc->lay_0_var = dsc->var_sum ;
+     sector = smp_inf * mds->itv ;
      dsc->var_sum = 0 ;
 
-     for (int i = dsc->brk_smp + 1 ; i < mds->smp ; i++)
+     for (int i = smp_inf ; i < smp_sup ; i++)
      {
           sector += mds->itv ;
 
@@ -323,7 +315,7 @@ int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max)
 
           if (dpm[i].var > var_min && dpm[i].var < var_max)
           {
-               if (dsc->inc_cnt > 199)
+               if (dsc->inc_cnt == 200)
                {
                     fprintf (stderr, "Abnormal increase count, exiting...\n") ;
                     exit (EXIT_FAILURE) ;
@@ -340,7 +332,7 @@ int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max)
 
           if (dpm[i].var < -var_min && dpm[i].var > -var_max)
           {
-               if (dsc->dec_cnt > 199)
+               if (dsc->dec_cnt == 200)
                {
                     fprintf (stderr, "Abnormal decrease count, exiting...\n") ;
                     exit (EXIT_FAILURE) ;
@@ -356,12 +348,25 @@ int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max)
           dsc->var_sum += abs (dpm[i].var) ;
      }
 
-     dsc->lay_1_var = dsc->var_sum ;
+     switch (lay_num)
+     {
+          case -1 :
+               dsc->var_rat = (float) (dpm[0].tim - dpm[mds->smp-1].tim) * 100 / dsc->var_sum ;
+               break ;
+          case 0 :
+               dsc->lay_0_var = dsc->var_sum ;
+               dsc->lay_0_rat = (float) (dpm[0].tim - dpm[dsc->brk_smp].tim) * 100 / dsc->lay_0_var ;
+               break ;
+          case 1 :
+               dsc->lay_1_var = dsc->var_sum ;
+               dsc->lay_1_rat = (float) abs (dpm[dsc->brk_smp+1].tim - dpm[mds->smp-1].tim) * 100 / dsc->lay_1_var ;
+               break ;
+     }
 
      return 0 ;
 }
 
-int eval_dpm_no_false (MDS *mds, DPM *dpm, DISC *dsc)
+int seek_spk_high_precision (MDS *mds, DPM *dpm, DISC *dsc)
 {
      unsigned long sector = 0 ;
 
@@ -394,7 +399,7 @@ int eval_dpm_no_false (MDS *mds, DPM *dpm, DISC *dsc)
                // true positive
                // now determining the first increase sector
 
-               if (dsc->inc_cnt > 199)
+               if (dsc->inc_cnt == 200)
                {
                     fprintf (stderr, "Abnormal increase count, exiting...\n") ;
                     exit (EXIT_FAILURE) ;
@@ -432,7 +437,7 @@ int eval_dpm_no_false (MDS *mds, DPM *dpm, DISC *dsc)
                // true positive
                // now determining the last decrease sector
 
-               if (dsc->dec_cnt > 199)
+               if (dsc->dec_cnt == 200)
                {
                     fprintf (stderr, "Abnormal decrease count, exiting...\n") ;
                     exit (EXIT_FAILURE) ;
@@ -454,6 +459,8 @@ int eval_dpm_no_false (MDS *mds, DPM *dpm, DISC *dsc)
 
           dsc->var_sum += abs (dpm[i].var) ;
      }
+
+     dsc->var_rat = (float) (dpm[0].tim - dpm[mds->smp-1].tim) * 100 / dsc->var_sum ;
 
      return 0 ;
 }
@@ -480,21 +487,40 @@ int calc_dec_amp (MDS *mds, DPM *dpm, DISC *dsc)
      return 0 ;
 }
 
-int seek_spk (MDS *mds, DPM *dpm, DISC *dsc)
+int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc)
 {
+     seek_brk (mds, dpm, dsc) ;
+
+     int var_min = 0 ;
+     int var_max = 0 ;
+
      switch (mds->itv)
      {
           case 50 :
-               eval_dpm_no_false (mds, dpm, dsc) ;
+               seek_spk_high_precision (mds, dpm, dsc) ;
                break ;
           case 256 :
-               eval_dpm (mds, dpm, dsc, 10, 60) ;           // requires more testing
+               var_min = 10 ;
+               var_max = 60 ;
                break ;
           case 500 :
-               eval_dpm (mds, dpm, dsc, 100, 400) ;         // requires much more testing
-               break ;
           case 2048 :
-               eval_dpm (mds, dpm, dsc, 100, 400) ;         // requires much more testing
+               var_min = 100 ;
+               var_max = 400 ;
+               break ;
+     }
+
+     switch (mds->lay)
+     {
+          case 0 :
+               if (mds->itv == 50)
+                    break ;
+          case 1 :
+               seek_spk (mds, dpm, dsc, var_min, var_max, -1) ;
+               break ;
+          case 2 :
+               seek_spk (mds, dpm, dsc, var_min, var_max, 0) ;
+               seek_spk (mds, dpm, dsc, var_min, var_max, 1) ;
                break ;
      }
 
@@ -503,14 +529,6 @@ int seek_spk (MDS *mds, DPM *dpm, DISC *dsc)
 
      if (dsc->dec_cnt)
           calc_dec_amp (mds, dpm, dsc) ;
-
-     if (dsc->lay_0_var)
-     {
-          dsc->lay_0_rat = (float) (dpm[0].tim - dpm[dsc->brk_smp].tim) * 100 / dsc->lay_0_var ;
-          dsc->lay_1_rat = (float) abs (dpm[dsc->brk_smp+1].tim - dpm[mds->smp-1].tim) * 100 / dsc->lay_1_var ;
-     }
-     else
-          dsc->var_rat = (float) (dpm[0].tim - dpm[mds->smp-1].tim) * 100 / dsc->var_sum ;
 
      return 0 ;
 }
@@ -535,7 +553,7 @@ int show_dpm (MDS *mds, DPM *dpm, DISC *dsc)
                     printf ("INCREASE\n") ;
                     increase = true ;
                     mark = '*' ;
-                    inc_num++ ;
+                    inc_num += 1 ;
                     break ;
                }
           }
@@ -548,7 +566,7 @@ int show_dpm (MDS *mds, DPM *dpm, DISC *dsc)
                     {
                          printf ("DECREASE\n") ;
                          mark = ' ' ;
-                         dec_num++ ;
+                         dec_num += 1 ;
                          break ;
                     }
                }
@@ -584,7 +602,7 @@ int seek_reg (MDS *mds, DISC *dsc)
      {
           if (dsc->inc_lba[i] - dsc->inc_lba[i-1] > threshold)
           {
-               if (dsc->stt_cnt > 9)
+               if (dsc->stt_cnt == 10)
                {
                     fprintf (stderr, "Abnormal start count, exiting...\n") ;
                     exit (EXIT_FAILURE) ;
@@ -601,7 +619,7 @@ int seek_reg (MDS *mds, DISC *dsc)
      {
           if (dsc->dec_lba[i] - dsc->dec_lba[i-1] > threshold)
           {
-               if (dsc->stp_cnt > 8)
+               if (dsc->stp_cnt == 9)
                {
                     fprintf (stderr, "Abnormal stop count, exiting...\n") ;
                     exit (EXIT_FAILURE) ;
@@ -621,7 +639,7 @@ int seek_reg (MDS *mds, DISC *dsc)
      return 0 ;
 }
 
-int show_mds (MDS *mds)
+int show_dsc (MDS *mds, DPM *dpm, DISC *dsc)
 {
      printf ("Format     \t %s %s\n\n", mds->cd ? "CD" : "DVD", mds->mod) ;
 
@@ -629,25 +647,20 @@ int show_mds (MDS *mds)
      printf ("Interval   \t %d sectors\n", mds->itv) ;
      printf ("Measure    \t %d samples\n\n", mds->smp) ;
 
-     return 0 ;
-}
-
-int show_dsc (MDS *mds, DPM *dpm, DISC *dsc)
-{
      if (dsc->brk_lba)
      {
           printf ("Break      \t LBA ~ %ld\n", dsc->brk_lba) ;
           printf ("Path       \t %s\n\n", dsc->trk_pth) ;
      }
 
-     if (dsc->lay_0_var)
+     if (mds->lay == 2)
      {
-          printf ("Layer      \t # 0 : bottom\n") ;
+          printf ("Layer      \t # 0\n") ;
           printf ("Timing     \t %d to %d\n", dpm[0].tim, dpm[dsc->brk_smp].tim) ;
           printf ("Variation  \t %d\n", dsc->lay_0_var) ;
           printf ("Curve      \t %.2f %%\n\n", dsc->lay_0_rat) ;
 
-          printf ("Layer      \t # 1 : top\n") ;
+          printf ("Layer      \t # 1\n") ;
           printf ("Timing     \t %d to %d\n", dpm[dsc->brk_smp+1].tim, dpm[mds->smp-1].tim) ;
           printf ("Variation  \t %d\n", dsc->lay_1_var) ;
           printf ("Curve      \t %.2f %%\n\n", dsc->lay_1_rat) ;
@@ -712,16 +725,18 @@ int eval_reg (DISC *dsc)
 
           for (int j = inc_num ; j < spk_cnt ; j++)
           {
-               if (dsc->inc_lba[j] >= dsc->stt_lba[i] && dsc->inc_lba[j] < dsc->stp_lba[i]) { ipr_cnt++ ; }
-               else { break ; }
+               if (dsc->inc_lba[j] >= dsc->stt_lba[i] && dsc->inc_lba[j] < dsc->stp_lba[i])
+                    ipr_cnt += 1 ;
+               else break ;
           }
 
           inc_num += ipr_cnt ;
 
           for (int j = dec_num ; j < spk_cnt ; j++)
           {
-               if (dsc->dec_lba[j] <= dsc->stp_lba[i] && dsc->dec_lba[j] > dsc->stt_lba[i]) { dpr_cnt++ ; }
-               else { break ; }
+               if (dsc->dec_lba[j] <= dsc->stp_lba[i] && dsc->dec_lba[j] > dsc->stt_lba[i])
+                    dpr_cnt += 1 ;
+               else break ;
           }
 
           dec_num += dpr_cnt ;
@@ -764,7 +779,8 @@ int show_reg (DISC *dsc)
           printf ("Gap %d    \t %ld sectors\n", i+1, itv_len) ;
      }
 
-     if (reg_cnt > 1) { printf ("\n") ; }
+     if (reg_cnt > 1)
+          printf ("\n") ;
 
      return 0 ;
 }
@@ -817,19 +833,22 @@ int show_spk (DISC *dsc, SPIKE *spk)
 
 int main (int argc, char **argv)
 {
-     if (argc < 2) { exit (EXIT_FAILURE) ; }
+     if (argc < 2)
+          exit (EXIT_FAILURE) ;
 
      char *path = argv[1] ;
 
      FILE *file = fopen (path, "rb") ;
-     if (file == NULL) { exit (EXIT_FAILURE) ; }
+     if (file == NULL)
+          exit (EXIT_FAILURE) ;
 
      MDS mds = {0} ;
 
      read_mds (file, &mds) ;
 
      DPM *dpm = calloc (mds.smp, sizeof (DPM)) ;
-     if (dpm == NULL) { exit (EXIT_FAILURE) ; }
+     if (dpm == NULL)
+          exit (EXIT_FAILURE) ;
 
      read_dpm (file, &mds, dpm) ;
 
@@ -838,12 +857,10 @@ int main (int argc, char **argv)
 
      DISC dsc = {0} ;
 
-     seek_brk (&mds, dpm, &dsc) ;
-     seek_spk (&mds, dpm, &dsc) ;
+     eval_dpm (&mds, dpm, &dsc) ;
      show_dpm (&mds, dpm, &dsc) ;
 
      seek_reg (&mds, &dsc) ;
-     show_mds (&mds) ;
      show_dsc (&mds, dpm, &dsc) ;
 
      free (dpm) ;
@@ -855,7 +872,8 @@ int main (int argc, char **argv)
      unsigned char spr_cnt = dsc.dec_cnt / dsc.stp_cnt ;
 
      SPIKE *spk = calloc (spr_cnt, sizeof (SPIKE)) ;
-     if (spk == NULL) { exit (EXIT_FAILURE) ; }
+     if (spk == NULL)
+          exit (EXIT_FAILURE) ;
 
      eval_spk (&dsc, spk) ;
      show_spk (&dsc, spk) ;
