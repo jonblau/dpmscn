@@ -487,100 +487,6 @@ int calc_dec_amp (MDS *mds, DPM *dpm, DISC *dsc)
      return 0 ;
 }
 
-int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc)
-{
-     seek_brk (mds, dpm, dsc) ;
-
-     int var_min = 0 ;
-     int var_max = 0 ;
-
-     switch (mds->itv)
-     {
-          case 50 :
-               seek_spk_high_precision (mds, dpm, dsc) ;
-               break ;
-          case 256 :
-               var_min = 10 ;
-               var_max = 60 ;
-               break ;
-          case 500 :
-          case 2048 :
-               var_min = 100 ;
-               var_max = 400 ;
-               break ;
-     }
-
-     switch (mds->lay)
-     {
-          case 0 :
-               if (mds->itv == 50)
-                    break ;
-          case 1 :
-               seek_spk (mds, dpm, dsc, var_min, var_max, -1) ;
-               break ;
-          case 2 :
-               seek_spk (mds, dpm, dsc, var_min, var_max, 0) ;
-               seek_spk (mds, dpm, dsc, var_min, var_max, 1) ;
-               break ;
-     }
-
-     if (dsc->inc_cnt)
-          calc_inc_amp (mds, dpm, dsc) ;
-
-     if (dsc->dec_cnt)
-          calc_dec_amp (mds, dpm, dsc) ;
-
-     return 0 ;
-}
-
-int show_dpm (MDS *mds, DPM *dpm, DISC *dsc)
-{
-     unsigned long sector = 0 ;
-     unsigned char inc_num = 0 ;
-     unsigned char dec_num = 0 ;
-     bool increase = false ;
-     char mark = ' ' ;
-
-     for (int i = 0 ; i < mds->smp ; i++)
-     {
-          sector += mds->itv ;
-          increase = false ;
-
-          for (int j = inc_num ; j < dsc->inc_cnt ; j++)
-          {
-               if (sector == dsc->inc_lba[j])
-               {
-                    printf ("INCREASE\n") ;
-                    increase = true ;
-                    mark = '*' ;
-                    inc_num += 1 ;
-                    break ;
-               }
-          }
-
-          if (increase == false)
-          {
-               for (int j = dec_num ; j < dsc->dec_cnt ; j++)
-               {
-                    if (sector == dsc->dec_lba[j])
-                    {
-                         printf ("DECREASE\n") ;
-                         mark = ' ' ;
-                         dec_num += 1 ;
-                         break ;
-                    }
-               }
-          }
-
-          printf ("%+d \t %d \t %ld   \t [%ld - %ld]   \t%c\n",
-                  dpm[i].var, dpm[i].tim, dpm[i].raw, sector - mds->itv, sector, mark) ;
-     }
-
-     printf ("\n") ;
-
-     return 0 ;
-}
-
 int seek_reg (MDS *mds, DISC *dsc)
 {
      unsigned int threshold = 0 ;
@@ -635,6 +541,102 @@ int seek_reg (MDS *mds, DISC *dsc)
           dsc->stp_lba[dsc->stp_cnt] = dsc->dec_lba[dsc->dec_cnt-1] ;
           dsc->stp_cnt += 1 ;
      }
+
+     return 0 ;
+}
+
+int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc)
+{
+     seek_brk (mds, dpm, dsc) ;
+
+     int var_min = 0 ;
+     int var_max = 0 ;
+
+     switch (mds->itv)
+     {
+          case 50 :
+               seek_spk_high_precision (mds, dpm, dsc) ;
+               break ;
+          case 256 :
+               var_min = 10 ;
+               var_max = 60 ;
+               break ;
+          case 500 :
+          case 2048 :
+               var_min = 100 ;
+               var_max = 400 ;
+               break ;
+     }
+
+     switch (mds->lay)
+     {
+          case 0 :
+               if (mds->itv == 50)
+                    break ;
+          case 1 :
+               seek_spk (mds, dpm, dsc, var_min, var_max, -1) ;
+               break ;
+          case 2 :
+               seek_spk (mds, dpm, dsc, var_min, var_max, 0) ;
+               seek_spk (mds, dpm, dsc, var_min, var_max, 1) ;
+               break ;
+     }
+
+     if (dsc->inc_cnt)
+          calc_inc_amp (mds, dpm, dsc) ;
+
+     if (dsc->dec_cnt)
+          calc_dec_amp (mds, dpm, dsc) ;
+
+     seek_reg (mds, dsc) ;
+
+     return 0 ;
+}
+
+int show_dpm (MDS *mds, DPM *dpm, DISC *dsc)
+{
+     unsigned long sector = 0 ;
+     unsigned char inc_num = 0 ;
+     unsigned char dec_num = 0 ;
+     bool increase = false ;
+     char mark = ' ' ;
+
+     for (int i = 0 ; i < mds->smp ; i++)
+     {
+          sector += mds->itv ;
+          increase = false ;
+
+          for (int j = inc_num ; j < dsc->inc_cnt ; j++)
+          {
+               if (sector == dsc->inc_lba[j])
+               {
+                    printf ("INCREASE\n") ;
+                    increase = true ;
+                    mark = '*' ;
+                    inc_num += 1 ;
+                    break ;
+               }
+          }
+
+          if (increase == false)
+          {
+               for (int j = dec_num ; j < dsc->dec_cnt ; j++)
+               {
+                    if (sector == dsc->dec_lba[j])
+                    {
+                         printf ("DECREASE\n") ;
+                         mark = ' ' ;
+                         dec_num += 1 ;
+                         break ;
+                    }
+               }
+          }
+
+          printf ("%+d \t %d \t %ld   \t [%ld - %ld]   \t%c\n",
+                  dpm[i].var, dpm[i].tim, dpm[i].raw, sector - mds->itv, sector, mark) ;
+     }
+
+     printf ("\n") ;
 
      return 0 ;
 }
@@ -860,7 +862,6 @@ int main (int argc, char **argv)
      eval_dpm (&mds, dpm, &dsc) ;
      show_dpm (&mds, dpm, &dsc) ;
 
-     seek_reg (&mds, &dsc) ;
      show_dsc (&mds, dpm, &dsc) ;
 
      free (dpm) ;
