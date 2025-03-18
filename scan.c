@@ -611,7 +611,7 @@ int show_dpm (MDS *mds, DPM *dpm, DISC *dsc)
           {
                if (sector == dsc->inc_lba[j])
                {
-                    printf ("INCREASE\n") ;
+                    printf ("\t\t\t\t\t\t\tINCREASE # %d\n", j + 1) ;
                     increase = true ;
                     mark = '*' ;
                     inc_num += 1 ;
@@ -625,7 +625,7 @@ int show_dpm (MDS *mds, DPM *dpm, DISC *dsc)
                {
                     if (sector == dsc->dec_lba[j])
                     {
-                         printf ("DECREASE\n") ;
+                         printf ("\t\t\t\t\t\t\tDECREASE # %d\n", j + 1) ;
                          mark = ' ' ;
                          dec_num += 1 ;
                          break ;
