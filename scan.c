@@ -282,9 +282,24 @@ int seek_brk (MDS *mds, DPM *dpm, DISC *dsc)
      return 0 ;
 }
 
-int seek_spk (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max, int lay_num)
+int seek_spk (MDS *mds, DPM *dpm, DISC *dsc, const int lay_num)
 {
-     unsigned long sector = 0 ;
+     unsigned int var_min = 0 ;
+     unsigned int var_max = 0 ;
+
+     switch (mds->itv)
+     {
+          case 256 :
+               var_min = 10 ;
+               var_max = 60 ;
+               break ;
+          case 500 :
+          case 2048 :
+               var_min = 100 ;
+               var_max = 400 ;
+               break ;
+     }
+
      unsigned int smp_inf = 0 ;
      unsigned int smp_sup = 0 ;
 
@@ -304,7 +319,7 @@ int seek_spk (MDS *mds, DPM *dpm, DISC *dsc, int var_min, int var_max, int lay_n
                break ;
      }
 
-     sector = smp_inf * mds->itv ;
+     unsigned long sector = smp_inf * mds->itv ;
      dsc->var_sum = 0 ;
 
      for (int i = smp_inf ; i < smp_sup ; i++)
@@ -549,38 +564,24 @@ int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc)
 {
      seek_brk (mds, dpm, dsc) ;
 
-     int var_min = 0 ;
-     int var_max = 0 ;
-
-     switch (mds->itv)
+     if (mds->itv == 50)
      {
-          case 50 :
-               seek_spk_high_precision (mds, dpm, dsc) ;
-               break ;
-          case 256 :
-               var_min = 10 ;
-               var_max = 60 ;
-               break ;
-          case 500 :
-          case 2048 :
-               var_min = 100 ;
-               var_max = 400 ;
-               break ;
+          seek_spk_high_precision (mds, dpm, dsc) ;
      }
-
-     switch (mds->lay)
-     {
-          case 0 :
-               if (mds->itv == 50)
+     else switch (mds->lay)
+          {
+               case 0 :
+               case 1 :
+                    // analyze whole disc
+                    seek_spk (mds, dpm, dsc, -1) ;
                     break ;
-          case 1 :
-               seek_spk (mds, dpm, dsc, var_min, var_max, -1) ;
-               break ;
-          case 2 :
-               seek_spk (mds, dpm, dsc, var_min, var_max, 0) ;
-               seek_spk (mds, dpm, dsc, var_min, var_max, 1) ;
-               break ;
-     }
+               case 2 :
+                    // analyze layer number 0
+                    seek_spk (mds, dpm, dsc, 0) ;
+                    // analyze layer number 1
+                    seek_spk (mds, dpm, dsc, 1) ;
+                    break ;
+          }
 
      if (dsc->inc_cnt)
           calc_inc_amp (mds, dpm, dsc) ;
