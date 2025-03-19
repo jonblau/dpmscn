@@ -594,38 +594,23 @@ int show_dpm (MDS *mds, DPM *dpm, DISC *dsc)
      unsigned long sector = 0 ;
      unsigned char inc_num = 0 ;
      unsigned char dec_num = 0 ;
-     bool increase = false ;
      char mark = ' ' ;
 
      for (int i = 0 ; i < mds->smp ; i++)
      {
           sector += mds->itv ;
-          increase = false ;
 
-          for (int j = inc_num ; j < dsc->inc_cnt ; j++)
+          if (inc_num < dsc->inc_cnt && sector == dsc->inc_lba[inc_num])
           {
-               if (sector == dsc->inc_lba[j])
-               {
-                    printf ("\t\t\t\t\t\t\tINCREASE # %d\n", j + 1) ;
-                    increase = true ;
-                    mark = '*' ;
-                    inc_num += 1 ;
-                    break ;
-               }
+               printf ("\t\t\t\t\t\t\tINCREASE # %d\n", inc_num + 1) ;
+               mark = '*' ;
+               inc_num += 1 ;
           }
-
-          if (increase == false)
+          else if (dec_num < dsc->dec_cnt && sector == dsc->dec_lba[dec_num])
           {
-               for (int j = dec_num ; j < dsc->dec_cnt ; j++)
-               {
-                    if (sector == dsc->dec_lba[j])
-                    {
-                         printf ("\t\t\t\t\t\t\tDECREASE # %d\n", j + 1) ;
-                         mark = ' ' ;
-                         dec_num += 1 ;
-                         break ;
-                    }
-               }
+               printf ("\t\t\t\t\t\t\tDECREASE # %d\n", dec_num + 1) ;
+               mark = ' ' ;
+               dec_num += 1 ;
           }
 
           printf ("%+d \t %d \t %ld   \t [%ld - %ld]   \t%c\n",
