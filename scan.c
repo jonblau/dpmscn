@@ -301,28 +301,24 @@ int seek_spk (MDS *mds, DPM *dpm, DISC *dsc, const int lay_num)
      }
 
      unsigned int smp_inf = 0 ;
-     unsigned int smp_sup = 0 ;
+     unsigned int smp_sup = mds->smp - 1 ;
 
      switch (lay_num)
      {
-          case -1 :
-               smp_inf = 0 ;
-               smp_sup = mds->smp ;
-               break ;
           case 0 :
                smp_inf = 0 ;
-               smp_sup = dsc->brk_smp + 1 ;
+               smp_sup = dsc->brk_smp ;
                break ;
           case 1 :
                smp_inf = dsc->brk_smp + 1 ;
-               smp_sup = mds->smp ;
+               smp_sup = mds->smp - 1 ;
                break ;
      }
 
      unsigned long sector = smp_inf * mds->itv ;
      dsc->var_sum = 0 ;
 
-     for (int i = smp_inf ; i < smp_sup ; i++)
+     for (int i = smp_inf ; i <= smp_sup ; i++)
      {
           sector += mds->itv ;
 
@@ -363,18 +359,17 @@ int seek_spk (MDS *mds, DPM *dpm, DISC *dsc, const int lay_num)
           dsc->var_sum += abs (dpm[i].var) ;
      }
 
+     dsc->var_rat = (float) abs (dpm[smp_inf].tim - dpm[smp_sup].tim) * 100 / dsc->var_sum ;
+
      switch (lay_num)
      {
-          case -1 :
-               dsc->var_rat = (float) (dpm[0].tim - dpm[mds->smp-1].tim) * 100 / dsc->var_sum ;
-               break ;
           case 0 :
                dsc->lay_0_var = dsc->var_sum ;
-               dsc->lay_0_rat = (float) (dpm[0].tim - dpm[dsc->brk_smp].tim) * 100 / dsc->lay_0_var ;
+               dsc->lay_0_rat = dsc->var_rat ;
                break ;
           case 1 :
                dsc->lay_1_var = dsc->var_sum ;
-               dsc->lay_1_rat = (float) abs (dpm[dsc->brk_smp+1].tim - dpm[mds->smp-1].tim) * 100 / dsc->lay_1_var ;
+               dsc->lay_1_rat = dsc->var_rat ;
                break ;
      }
 
