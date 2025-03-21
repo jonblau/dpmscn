@@ -245,39 +245,28 @@ int seek_brk (MDS *mds, DPM *dpm, DISC *dsc)
      if (mds->cd || mds->lay < 2)
           return 0 ;
 
-     unsigned long sct_inf = mds->sct / 2 ;
-     // 4.7 GB as 4700000000 / 2048 is ~ 2294922 sectors
-     unsigned long sct_sup = 2294922 ;
+     // defining inferior and superior limits of the layer break area
+     // 4.7 GB as 4700000000 is ~ 2294922 sectors of 2048 bytes/sector
 
-     unsigned int smp_inf = sct_inf / mds->itv - 1 ;
-     unsigned int smp_sup = sct_sup / mds->itv - 1 ;
+     unsigned int smp_inf = (mds->sct / 2) / mds->itv - 1 ;
+     unsigned int smp_sup = (2294922) / mds->itv - 1 ;
 
-     unsigned int tim_min = dpm[smp_inf].tim ;
-
-     dsc->brk_smp = smp_inf ;
+     unsigned int brk_tim = dpm[smp_inf].tim ;
 
      for (int i = smp_inf ; i < smp_sup + 1 ; i++)
      {
-          if (tim_min >= dpm[i].tim)
+          if (brk_tim >= dpm[i].tim)
           {
-               tim_min = dpm[i].tim ;
+               brk_tim = dpm[i].tim ;
                dsc->brk_smp = i ;
           }
      }
 
      dsc->brk_lba = (dsc->brk_smp + 1) * mds->itv ;
-     sprintf (dsc->trk_pth, "opposite") ;
 
-     for (int i = dsc->brk_smp ; i < smp_sup + 1 ; i++)
-     {
-          if (dpm[i].var > 100)
-          {
-               dsc->brk_smp = i ;
-               dsc->brk_lba = (dsc->brk_smp + 1) * mds->itv ;
-               sprintf (dsc->trk_pth, "parallel") ;
-               break ;
-          }
-     }
+     if (abs (dpm[smp_inf].tim - dpm[smp_sup+1].tim) < 100)
+          sprintf (dsc->trk_pth, "opposite") ;
+     else sprintf (dsc->trk_pth, "parallel") ;
 
      return 0 ;
 }
@@ -755,7 +744,7 @@ int show_reg (DISC *dsc)
 
      unsigned long itv_len = 0 ;
 
-     for (int i = 0 ; i < reg_cnt-1 ; i++)
+     for (int i = 0 ; i < reg_cnt - 1 ; i++)
      {
           itv_len = dsc->stt_lba[i+1] - dsc->stp_lba[i] ;
 
