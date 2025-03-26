@@ -619,14 +619,11 @@ int show_dsc (MDS *mds, DPM *dpm, DISC *dsc)
      printf ("Interval   \t %d sectors\n", mds->itv) ;
      printf ("Measure    \t %d samples\n\n", mds->smp) ;
 
-     if (dsc->brk_lba)
+     if (mds->lay == 2)
      {
           printf ("Break      \t LBA ~ %ld\n", dsc->brk_lba) ;
           printf ("Path       \t %s\n\n", dsc->trk_pth) ;
-     }
 
-     if (mds->lay == 2)
-     {
           printf ("Layer      \t # 0\n") ;
           printf ("Timing     \t %d to %d\n", dpm[0].tim, dpm[dsc->brk_smp].tim) ;
           printf ("Variation  \t %d\n", dsc->lay_0_sum) ;
