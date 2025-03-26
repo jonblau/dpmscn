@@ -64,8 +64,8 @@ typedef struct disc
      char trk_pth[9] ;
      unsigned int err_cnt ;
      unsigned int var_sum ;
-     unsigned int lay_0_var ;
-     unsigned int lay_1_var ;
+     unsigned int lay_0_sum ;
+     unsigned int lay_1_sum ;
      float var_rat ;
      float lay_0_rat ;
      float lay_1_rat ;
@@ -253,7 +253,7 @@ int seek_brk (MDS *mds, DPM *dpm, DISC *dsc)
 
      unsigned int brk_tim = dpm[smp_inf].tim ;
 
-     for (int i = smp_inf ; i < smp_sup + 1 ; i++)
+     for (int i = smp_inf ; i <= smp_sup ; i++)
      {
           if (brk_tim >= dpm[i].tim)
           {
@@ -289,25 +289,25 @@ int seek_spk (MDS *mds, DPM *dpm, DISC *dsc, const int lay_num)
                break ;
      }
 
-     unsigned int smp_inf = 0 ;
-     unsigned int smp_sup = mds->smp - 1 ;
+     unsigned int smp_stt = 0 ;
+     unsigned int smp_stp = mds->smp - 1 ;
 
      switch (lay_num)
      {
           case 0 :
-               smp_inf = 0 ;
-               smp_sup = dsc->brk_smp ;
+               smp_stt = 0 ;
+               smp_stp = dsc->brk_smp ;
                break ;
           case 1 :
-               smp_inf = dsc->brk_smp + 1 ;
-               smp_sup = mds->smp - 1 ;
+               smp_stt = dsc->brk_smp + 1 ;
+               smp_stp = mds->smp - 1 ;
                break ;
      }
 
-     unsigned long sector = smp_inf * mds->itv ;
+     unsigned long sector = smp_stt * mds->itv ;
      dsc->var_sum = 0 ;
 
-     for (int i = smp_inf ; i <= smp_sup ; i++)
+     for (int i = smp_stt ; i <= smp_stp ; i++)
      {
           sector += mds->itv ;
 
@@ -348,16 +348,16 @@ int seek_spk (MDS *mds, DPM *dpm, DISC *dsc, const int lay_num)
           dsc->var_sum += abs (dpm[i].var) ;
      }
 
-     dsc->var_rat = (float) abs (dpm[smp_inf].tim - dpm[smp_sup].tim) * 100 / dsc->var_sum ;
+     dsc->var_rat = (float) abs (dpm[smp_stt].tim - dpm[smp_stp].tim) * 100 / dsc->var_sum ;
 
      switch (lay_num)
      {
           case 0 :
-               dsc->lay_0_var = dsc->var_sum ;
+               dsc->lay_0_sum = dsc->var_sum ;
                dsc->lay_0_rat = dsc->var_rat ;
                break ;
           case 1 :
-               dsc->lay_1_var = dsc->var_sum ;
+               dsc->lay_1_sum = dsc->var_sum ;
                dsc->lay_1_rat = dsc->var_rat ;
                break ;
      }
@@ -629,12 +629,12 @@ int show_dsc (MDS *mds, DPM *dpm, DISC *dsc)
      {
           printf ("Layer      \t # 0\n") ;
           printf ("Timing     \t %d to %d\n", dpm[0].tim, dpm[dsc->brk_smp].tim) ;
-          printf ("Variation  \t %d\n", dsc->lay_0_var) ;
+          printf ("Variation  \t %d\n", dsc->lay_0_sum) ;
           printf ("Curve      \t %.2f %%\n\n", dsc->lay_0_rat) ;
 
           printf ("Layer      \t # 1\n") ;
           printf ("Timing     \t %d to %d\n", dpm[dsc->brk_smp+1].tim, dpm[mds->smp-1].tim) ;
-          printf ("Variation  \t %d\n", dsc->lay_1_var) ;
+          printf ("Variation  \t %d\n", dsc->lay_1_sum) ;
           printf ("Curve      \t %.2f %%\n\n", dsc->lay_1_rat) ;
      }
      else
