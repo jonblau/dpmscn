@@ -578,12 +578,19 @@ int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc)
      return 0 ;
 }
 
-int show_dpm (MDS *mds, DPM *dpm, DISC *dsc)
+int save_log (MDS *mds, DPM *dpm, DISC *dsc)
 {
+     FILE *file = fopen ("scan.log", "w") ;
+     if (file == NULL)
+     {
+          free (dpm) ;
+          exit (EXIT_FAILURE) ;
+     }
+
      unsigned long sector = 0 ;
      unsigned char inc_num = 0 ;
      unsigned char dec_num = 0 ;
-     char mark = ' ' ;
+     char mark = '|' ;
 
      for (int i = 0 ; i < mds->smp ; i++)
      {
@@ -591,22 +598,22 @@ int show_dpm (MDS *mds, DPM *dpm, DISC *dsc)
 
           if (inc_num < dsc->inc_cnt && sector == dsc->inc_lba[inc_num])
           {
-               printf ("\t\t\t\t\t\t\tINCREASE # %d\n", inc_num + 1) ;
-               mark = '*' ;
+               fprintf (file, "\t\t\t\t\t\t\t\t   INCREASE # %d\n", inc_num + 1) ;
+               mark = '>' ;
                inc_num += 1 ;
           }
           else if (dec_num < dsc->dec_cnt && sector == dsc->dec_lba[dec_num])
           {
-               printf ("\t\t\t\t\t\t\tDECREASE # %d\n", dec_num + 1) ;
-               mark = ' ' ;
+               fprintf (file, "\t\t\t\t\t\t\t\t   DECREASE # %d\n", dec_num + 1) ;
+               mark = '|' ;
                dec_num += 1 ;
           }
 
-          printf ("%+d \t %d \t %ld   \t [%ld - %ld]   \t%c\n",
-                  dpm[i].var, dpm[i].tim, dpm[i].raw, sector - mds->itv, sector, mark) ;
+          fprintf (file, "[%07ld - %07ld] %08ld %d %+d \t %c\n",
+                   sector - mds->itv, sector, dpm[i].raw, dpm[i].tim, dpm[i].var, mark) ;
      }
 
-     printf ("\n") ;
+     fclose (file) ;
 
      return 0 ;
 }
@@ -827,8 +834,7 @@ int main (int argc, char **argv)
      DISC dsc = {0} ;
 
      eval_dpm (&mds, dpm, &dsc) ;
-     show_dpm (&mds, dpm, &dsc) ;
-
+     save_log (&mds, dpm, &dsc) ;
      show_dsc (&mds, dpm, &dsc) ;
 
      free (dpm) ;
