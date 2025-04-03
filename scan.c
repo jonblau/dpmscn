@@ -1,250 +1,25 @@
-# include <stdio.h>
-# include <stdlib.h>
-# include <stdbool.h>
-# include <string.h>
+// DPM SCN 0.1
+// PC DSC image utility that displays and analyzes DPM timings from MDS files
+// Copyright (c) 2025 Jon Blau
 
-# include <math.h>
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-# include <SDL.h>
-# include <unistd.h>
+// This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation, either version 3 of the License, or
+//  (at your option) any later version.
 
-/*
- DPM SCN 0.1
- PC disc image utility that displays and analyzes DPM timings from MDS files
- Copyright (c) 2025 Jon Blau
+// This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//  GNU General Public License for more details.
 
- SPDX-License-Identifier: GPL-3.0-or-later
+// You should have received a copy of the GNU General Public License
+//  along with this program. If not, see <https://www.gnu.org/licenses/>.
 
- This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+# include "scan.h"
 
- This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
-  along with this program. If not, see <https://www.gnu.org/licenses/>.
-*/
-
-typedef struct mds
-{
-     bool cd ;
-     bool dvd ;
-     unsigned int ptr ;
-     unsigned int lay ;
-     char mod[14] ;
-     unsigned char loc ;
-     unsigned int itv ;
-     unsigned int smp ;
-     unsigned long sct ;
-}
-MDS ;
-
-typedef struct dpm
-{
-     unsigned long raw ;
-     unsigned int tim ;
-     signed int var ;
-}
-DPM ;
-
-typedef struct disc
-{
-     unsigned long inc_lba[200] ;
-     unsigned long dec_lba[200] ;
-     unsigned char inc_cnt ;
-     unsigned char dec_cnt ;
-     unsigned long stt_lba[10] ;
-     unsigned long stp_lba[10] ;
-     unsigned char stt_cnt ;
-     unsigned char stp_cnt ;
-     signed int inc_amp[2] ;
-     signed int dec_amp[2] ;
-     unsigned int brk_smp ;
-     unsigned long brk_lba ;
-     char trk_pth[9] ;
-     unsigned int err_cnt ;
-     unsigned int var_sum ;
-     unsigned int lay_0_sum ;
-     unsigned int lay_1_sum ;
-     float var_rat ;
-     float lay_0_rat ;
-     float lay_1_rat ;
-}
-DISC ;
-
-typedef struct spike
-{
-     unsigned long len[4] ;
-     float avg ;
-     float dev ;
-}
-SPIKE ;
-
-int read_mds (FILE *file, MDS *mds)
-{
-     char file_id[16] ;
-
-     fseek (file, 0x00, SEEK_SET) ;
-     fread (file_id, 16, 1, file) ;
-
-     if (memcmp ("MEDIA DESCRIPTOR", file_id, 16))
-     {
-          fprintf (stderr, "No MDS\n") ;
-          exit (EXIT_FAILURE) ;
-     }
-
-     unsigned char byte = 0 ;
-
-     fseek (file, 0x11, SEEK_SET) ;
-     fread (&byte, 1, 1, file) ;
-
-     if (byte != 0x05)
-     {
-          fprintf (stderr, "Unsupported file version\n") ;
-          exit (EXIT_FAILURE) ;
-     }
-
-     fseek (file, 0x12, SEEK_SET) ;
-     fread (&byte, 1, 1, file) ;
-
-     switch (byte)
-     {
-          case 0x00 :
-               mds->cd = true ;
-               break ;
-          case 0x10 :
-               mds->dvd = true ;
-               break ;
-          default :
-               fprintf (stderr, "Unknown disc format\n") ;
-               exit (EXIT_FAILURE) ;
-     }
-
-     fseek (file, 0x54, SEEK_SET) ;
-     fread (&mds->ptr, 2, 1, file) ;
-
-     switch (mds->ptr)
-     {
-          case 0x0000 :
-               fprintf (stderr, "No DPM\n") ;
-               exit (EXIT_FAILURE) ;
-          case 0x10E8 :
-               mds->lay = 1 ;
-               break ;
-          case 0x20EC :
-               mds->lay = 2 ;
-               break ;
-     }
-
-     if (mds->cd)
-     {
-          fseek (file, 0x168, SEEK_SET) ;
-          fread (&byte, 1, 1, file) ;
-
-          byte &= 0x0F ;
-
-          switch (byte)
-          {
-               case 0x09 :
-                    sprintf (mds->mod, "audio") ;
-                    break ;
-               case 0x0A :
-                    sprintf (mds->mod, "mode 1") ;
-                    break ;
-               case 0x0B :
-                    sprintf (mds->mod, "mode 2") ;
-                    break ;
-               case 0x0C :
-                    sprintf (mds->mod, "mode 2 form 1") ;
-                    break ;
-               case 0x0D :
-                    sprintf (mds->mod, "mode 2 form 2") ;
-                    break ;
-          }
-     }
-     else if (mds->dvd && mds->lay == 1)
-          sprintf (mds->mod, "single layer") ;
-     else if (mds->dvd && mds->lay == 2)
-          sprintf (mds->mod, "double layer") ;
-
-     unsigned int offset = 0 ;
-
-     fseek (file, mds->ptr, SEEK_SET) ;
-     fread (&mds->loc, 1, 1, file) ;
-
-     switch (mds->loc)
-     {
-          case 0x01 :
-               offset = mds->ptr + 16 ;
-               break ;
-          case 0x02 :
-               offset = mds->ptr + 20 ;
-               break ;
-          default :
-               fprintf (stderr, "Unknown header structure\n") ;
-               exit (EXIT_FAILURE) ;
-     }
-
-     fseek (file, offset, SEEK_SET) ;
-     fread (&mds->itv, 2, 1, file) ;
-
-     offset += 4 ;
-
-     fseek (file, offset, SEEK_SET) ;
-     fread (&mds->smp, 2, 1, file) ;
-
-     switch (mds->itv)
-     {
-          case 50 :
-          case 500 :
-               offset = 100 ;
-               break ;
-          case 256 :
-          case 2048 :
-               offset = mds->ptr - 128 ;
-               break ;
-          default :
-               fprintf (stderr, "Unknown interval value\n") ;
-               exit (EXIT_FAILURE) ;
-     }
-
-     fseek (file, offset, SEEK_SET) ;
-     fread (&mds->sct, 3, 1, file) ;
-
-     return 0 ;
-}
-
-int read_dpm (FILE *file, MDS *mds, DPM *dpm)
-{
-     unsigned int offset = 0 ;
-
-     if (mds->loc == 0x01)
-          offset = mds->ptr + 24 ;
-     else if (mds->loc == 0x02)
-          offset = mds->ptr + 28 ;
-
-     fseek (file, offset, SEEK_SET) ;
-     fread (&dpm[0].raw, 4, 1, file) ;
-
-     dpm[0].tim = dpm[0].raw ;
-     dpm[0].var = 0 ;
-
-     for (int i = 1 ; i < mds->smp ; i++)
-     {
-          fread (&dpm[i].raw, 4, 1, file) ;
-
-          dpm[i].tim = dpm[i].raw - dpm[i-1].raw ;
-          dpm[i].var = dpm[i].tim - dpm[i-1].tim ;
-     }
-
-     return 0 ;
-}
-
-int seek_brk (MDS *mds, DPM *dpm, DISC *dsc)
+int seek_brk (MDS *mds, DPM *dpm, DSC *dsc)
 {
      if (mds->cd || mds->lay < 2)
           return 0 ;
@@ -275,7 +50,7 @@ int seek_brk (MDS *mds, DPM *dpm, DISC *dsc)
      return 0 ;
 }
 
-int seek_spk (MDS *mds, DPM *dpm, DISC *dsc, const int lay_num)
+int seek_spk (MDS *mds, DPM *dpm, DSC *dsc, const int lay_num)
 {
      unsigned int var_min = 0 ;
      unsigned int var_max = 0 ;
@@ -369,7 +144,7 @@ int seek_spk (MDS *mds, DPM *dpm, DISC *dsc, const int lay_num)
      return 0 ;
 }
 
-int seek_spk_high_precision (MDS *mds, DPM *dpm, DISC *dsc)
+int seek_spk_high_precision (MDS *mds, DPM *dpm, DSC *dsc)
 {
      unsigned long sector = 0 ;
 
@@ -468,7 +243,7 @@ int seek_spk_high_precision (MDS *mds, DPM *dpm, DISC *dsc)
      return 0 ;
 }
 
-int calc_inc_amp (MDS *mds, DPM *dpm, DISC *dsc)
+int calc_inc_amp (MDS *mds, DPM *dpm, DSC *dsc)
 {
      unsigned int fis = dsc->inc_lba[0] / mds->itv - 1 ;
      unsigned int lis = dsc->inc_lba[dsc->inc_cnt-1] / mds->itv - 1 ;
@@ -479,7 +254,7 @@ int calc_inc_amp (MDS *mds, DPM *dpm, DISC *dsc)
      return 0 ;
 }
 
-int calc_dec_amp (MDS *mds, DPM *dpm, DISC *dsc)
+int calc_dec_amp (MDS *mds, DPM *dpm, DSC *dsc)
 {
      unsigned int fds = dsc->dec_lba[0] / mds->itv - 1 ;
      unsigned int lds = dsc->dec_lba[dsc->dec_cnt-1] / mds->itv - 1 ;
@@ -490,7 +265,7 @@ int calc_dec_amp (MDS *mds, DPM *dpm, DISC *dsc)
      return 0 ;
 }
 
-int seek_reg (MDS *mds, DISC *dsc)
+int seek_reg (MDS *mds, DSC *dsc)
 {
      unsigned int threshold = 0 ;
 
@@ -548,7 +323,7 @@ int seek_reg (MDS *mds, DISC *dsc)
      return 0 ;
 }
 
-int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc)
+int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc)
 {
      seek_brk (mds, dpm, dsc) ;
 
@@ -557,19 +332,19 @@ int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc)
           seek_spk_high_precision (mds, dpm, dsc) ;
      }
      else switch (mds->lay)
-          {
-               case 0 :
-               case 1 :
-                    // analyze whole disc
-                    seek_spk (mds, dpm, dsc, -1) ;
-                    break ;
-               case 2 :
-                    // analyze layer number 0
-                    seek_spk (mds, dpm, dsc, 0) ;
-                    // analyze layer number 1
-                    seek_spk (mds, dpm, dsc, 1) ;
-                    break ;
-          }
+     {
+          case 0 :
+          case 1 :
+               // analyze whole DSC
+               seek_spk (mds, dpm, dsc, -1) ;
+               break ;
+          case 2 :
+               // analyze layer number 0
+               seek_spk (mds, dpm, dsc, 0) ;
+               // analyze layer number 1
+               seek_spk (mds, dpm, dsc, 1) ;
+               break ;
+     }
 
      if (dsc->inc_cnt)
           calc_inc_amp (mds, dpm, dsc) ;
@@ -582,7 +357,7 @@ int eval_dpm (MDS *mds, DPM *dpm, DISC *dsc)
      return 0 ;
 }
 
-int save_log (MDS *mds, DPM *dpm, DISC *dsc)
+int save_log (MDS *mds, DPM *dpm, DSC *dsc)
 {
      FILE *file = fopen ("scan.log", "w") ;
      if (file == NULL)
@@ -622,7 +397,7 @@ int save_log (MDS *mds, DPM *dpm, DISC *dsc)
      return 0 ;
 }
 
-int show_dsc (MDS *mds, DPM *dpm, DISC *dsc)
+int show_dsc (MDS *mds, DPM *dpm, DSC *dsc)
 {
      printf ("Format     \t %s %s\n\n", mds->cd ? "CD" : "DVD", mds->mod) ;
 
@@ -660,7 +435,7 @@ int show_dsc (MDS *mds, DPM *dpm, DISC *dsc)
      printf ("Region     \t %d starts\n", dsc->stt_cnt) ;
      printf ("           \t %d stops\n\n", dsc->stp_cnt) ;
 
-     printf ("Spike      \t %d increases\n", dsc->inc_cnt) ;
+     printf ("SPK      \t %d increases\n", dsc->inc_cnt) ;
      printf ("           \t %d decreases\n\n", dsc->dec_cnt) ;
 
      printf ("Amplitude  \t %+d to %+d\n", dsc->inc_amp[0], dsc->inc_amp[1]) ;
@@ -669,9 +444,9 @@ int show_dsc (MDS *mds, DPM *dpm, DISC *dsc)
      return 0 ;
 }
 
-int eval_reg (DISC *dsc)
+int eval_reg (DSC *dsc)
 {
-     // evaluate disc density layout consistency using count homogeneity
+     // evaluate DSC density layout consistency using count homogeneity
 
      if (dsc->stt_cnt == 0 && dsc->stp_cnt == 0)
      {
@@ -731,7 +506,7 @@ int eval_reg (DISC *dsc)
      return 0 ;
 }
 
-int show_reg (DISC *dsc)
+int show_reg (DSC *dsc)
 {
      unsigned char reg_cnt = dsc->stp_cnt ;
      unsigned char spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;
@@ -765,9 +540,9 @@ int show_reg (DISC *dsc)
      return 0 ;
 }
 
-int eval_spk (DISC *dsc, SPIKE *spk)
+int eval_spk (DSC *dsc, SPK *spk)
 {
-     // evaluate timing spike length consistency using standard deviation
+     // evaluate timing SPK length consistency using standard deviation
 
      unsigned char reg_cnt = dsc->stp_cnt ;
      unsigned char spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;
@@ -799,148 +574,16 @@ int eval_spk (DISC *dsc, SPIKE *spk)
      return 0 ;
 }
 
-int show_spk (DISC *dsc, SPIKE *spk)
+int show_spk (DSC *dsc, SPK *spk)
 {
      unsigned char spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;
 
      for (int i = 0 ; i < spr_cnt ; i++)
      {
-          printf ("Spike %d \t avg = %.0f \t dev = %.0f\n", i+1, spk[i].avg, spk[i].dev) ;
+          printf ("SPK %d \t avg = %.0f \t dev = %.0f\n", i+1, spk[i].avg, spk[i].dev) ;
      }
 
      return 0 ;
-}
-
-int calculate_timing_points (MDS *mds, DPM *dpm, SDL_Point *timing, int smp_stt, int smp_stp)
-{
-     int zoom = mds->smp / (smp_stp + 1 - smp_stt) ;
-
-     unsigned long sector = 0 ;
-
-     for (int i = smp_stt ; i <= smp_stp ; i++)
-     {
-          sector += mds->itv ;
-
-          timing[i].x = (sector * 640 * zoom / mds->sct) ;
-          timing[i].y = (480 - (dpm[i].tim * 480 / dpm[0].tim)) * 1 + 480 / 10 ;
-     }
-
-     return 0 ;
-}
-
-bool draw_crv (MDS *mds, DPM *dpm)
-{
-     SDL_Window *window = NULL ;
-     SDL_Renderer *renderer = NULL ;
-     SDL_Texture *texture_1 = NULL ;
-     SDL_Texture *texture_2 = NULL ;
-     SDL_Point *timing = NULL ;
-
-     bool error = false ;
-
-     timing = malloc (mds->smp * sizeof (SDL_Point)) ;
-     if (timing == NULL) { error = true ; goto quit ; }
-
-     /* initializing */
-
-     int action = 0 ;
-
-     action = SDL_Init (SDL_INIT_VIDEO) ;
-     if (action != 0) { error = true ; goto quit ; }
-
-     window = SDL_CreateWindow ("DPM curve and pattern", 0, 0, 640, 540, SDL_WINDOW_SHOWN) ;
-     if (window == NULL) { error = true ; goto quit ; }
-
-     renderer = SDL_CreateRenderer (window, -1, SDL_RENDERER_SOFTWARE) ;
-     if (renderer == NULL) { error = true ; goto quit ; }
-
-     texture_1 = SDL_CreateTexture (renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 640, 480) ;
-     if (texture_1 == NULL) { error = true ; goto quit ; }
-
-     texture_2 = SDL_CreateTexture (renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 640, 480) ;
-     if (texture_2 == NULL) { error = true ; goto quit ; }
-
-     /* drawing texture_1 */
-
-     SDL_SetRenderTarget (renderer, texture_1) ;
-
-          action = SDL_SetRenderDrawColor (renderer, 55, 55, 55, SDL_ALPHA_OPAQUE) ;
-          if (action != 0) { error = true ; goto quit ; }
-
-          SDL_RenderClear (renderer) ;
-
-          action = SDL_SetRenderDrawColor (renderer, 255, 0, 0, SDL_ALPHA_OPAQUE) ;
-          if (action != 0) { error = true ; goto quit ; }
-
-          calculate_timing_points (mds, dpm, timing, 0, mds->smp - 1) ;
-
-          action = SDL_RenderDrawLines (renderer, timing, mds->smp) ;
-          if (action != 0) { error = true ; goto quit ; }
-
-     /* drawing texture_2 */
-
-     SDL_SetRenderTarget (renderer, texture_2) ;
-
-          action = SDL_SetRenderDrawColor (renderer, 65, 65, 65, SDL_ALPHA_OPAQUE) ;
-          if (action != 0) { error = true ; goto quit ; }
-
-          SDL_RenderClear (renderer) ;
-
-          action = SDL_SetRenderDrawColor (renderer, 255, 0, 0, SDL_ALPHA_OPAQUE) ;
-          if (action != 0) { error = true ; goto quit ; }
-
-          calculate_timing_points (mds, dpm, timing, 0, 750 - 1) ;
-
-          action = SDL_RenderDrawLines (renderer, timing, 750) ;
-          if (action != 0) { error = true ; goto quit ; }
-
-     /* rendering */
-
-     SDL_SetRenderTarget (renderer, NULL) ;
-
-          SDL_Rect area_1 = {0, 0, 640, 360} ;
-          SDL_Rect area_2 = {0, 0, 640, 180} ;
-          SDL_Rect area_3 = {0, 360, 640, 180} ;
-
-          SDL_RenderCopy (renderer, texture_1, &area_1, &area_1) ;
-          SDL_RenderCopy (renderer, texture_2, &area_2, &area_3) ;
-
-          SDL_RenderPresent (renderer) ;
-
-     /* waiting */
-
-     SDL_Event event = {0} ;
-
-     bool execution = true ;
-
-     while (execution)
-     {
-          while (SDL_PollEvent (&event))
-          {
-               switch (event.type)
-               {
-                    case SDL_QUIT :
-                    execution = false ;
-                    break ;
-               }
-          }
-     }
-
-     /* exiting */
-
-     quit :
-
-     if (error == true)       SDL_Log ("%s\n", SDL_GetError()) ;
-     if (timing != NULL)      free (timing) ;
-
-     if (texture_2 != NULL)   SDL_DestroyTexture (texture_2) ;
-     if (texture_1 != NULL)   SDL_DestroyTexture (texture_1) ;
-     if (renderer != NULL)    SDL_DestroyRenderer (renderer) ;
-     if (window != NULL)      SDL_DestroyWindow (window) ;
-
-     SDL_Quit() ;
-
-     return error ;
 }
 
 int main (int argc, char **argv)
@@ -978,7 +621,7 @@ int main (int argc, char **argv)
           return 0 ;
      }
 
-     DISC dsc = {0} ;
+     DSC dsc = {0} ;
 
      eval_dpm (&mds, dpm, &dsc) ;
      save_log (&mds, dpm, &dsc) ;
@@ -992,7 +635,7 @@ int main (int argc, char **argv)
 
      unsigned char spr_cnt = dsc.dec_cnt / dsc.stp_cnt ;
 
-     SPIKE *spk = calloc (spr_cnt, sizeof (SPIKE)) ;
+     SPK *spk = calloc (spr_cnt, sizeof (SPK)) ;
      if (spk == NULL)
           exit (EXIT_FAILURE) ;
 
