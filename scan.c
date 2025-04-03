@@ -6,6 +6,7 @@
 # include <math.h>
 
 # include <SDL.h>
+# include <unistd.h>
 
 /*
  DPM SCN 0.1
@@ -966,7 +967,16 @@ int main (int argc, char **argv)
      fclose (file) ;
      file = NULL ;
 
-     draw_crv (&mds, dpm) ;
+     int pid = fork () ;
+     if (pid == 0)
+     {
+          draw_crv (&mds, dpm) ;
+
+          free (dpm) ;
+          dpm = NULL ;
+
+          return 0 ;
+     }
 
      DISC dsc = {0} ;
 
