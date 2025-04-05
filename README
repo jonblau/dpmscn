@@ -19,14 +19,20 @@ Usage
 
      scan [*.mds]
 
-Source
-------
-
-https://github.com/jonblau/dpmscn
-
 License
 -------
 
+DPM SCN
 SPDX-License-Identifier: GPL-3.0-or-later
+Copyright (c) 2025 Jon Blau
 
-Copyright (C) 2025 Jon Blau
+https://github.com/jonblau/dpmscn
+
+Library
+-------
+
+     SDL
+     SPDX-License-Identifier: Zlib
+     Copyright (c) 1997-2025 Sam Lantinga
+
+     https://github.com/libsdl-org/SDL
