@@ -1,38 +1,33 @@
 DPM SCN
 -------
 
-Disc image utility that displays and analyzes DPM timings from MDS files.
+ Disc image utility that displays and analyzes DPM timings from MDS files.
 
-Generated statistics help to :
+ Generated statistics help to :
 
  - identify low quality dumps
  - find best performing drives
 
-Values are specific and relevant when comparing several DPM dumps of the same disc.
+ Values are specific and relevant when comparing several DPM dumps of the same disc.
 
-Compatible with MDS files created by Alcohol v2.0 or later.
+ Compatible with MDS files created by Alcohol v2.0 or later.
 
 Usage
 -----
 
- Open a terminal and execute :
-
-     scan [*.mds]
+ Drag and drop a file on 'scan'
 
 License
 -------
 
-DPM SCN
-SPDX-License-Identifier: GPL-3.0-or-later
-Copyright (c) 2025 Jon Blau
+ DPM SCN
 
-https://github.com/jonblau/dpmscn
+ SPDX-License-Identifier: GPL-3.0-or-later
+ Copyright (c) 2025 Jon Blau
+ https://github.com/jonblau/dpmscn
 
-Library
--------
+ SDL
 
-     SDL
-     SPDX-License-Identifier: Zlib
-     Copyright (c) 1997-2025 Sam Lantinga
-
-     https://github.com/libsdl-org/SDL
+ SPDX-License-Identifier: Zlib
+ Copyright (c) 1997-2025 Sam Lantinga
+ https://github.com/libsdl-org/SDL
