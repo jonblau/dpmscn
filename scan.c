@@ -609,6 +609,8 @@ int main (int argc, char **argv)
      fclose (file) ;
      file = NULL ;
 
+     # if LINUX
+
      int pid = fork () ;
      if (pid == 0)
      {
@@ -619,6 +621,12 @@ int main (int argc, char **argv)
 
           return 0 ;
      }
+
+     # else
+
+     draw_crv (&mds, dpm) ;
+
+     # endif
 
      DSC dsc = {0} ;
 

@@ -25,7 +25,12 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include <string.h>
+
+# if LINUX
+
 # include <unistd.h>
+
+# endif
 
 # include "draw.h"
 # include "parse.h"
