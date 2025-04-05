@@ -1,5 +1,5 @@
-// DPM SCN 0.1
-// PC disc image utility that displays and analyzes DPM timings from MDS files
+// DPM SCN
+// Disc image utility that displays and analyzes DPM timings from MDS files
 // Copyright (c) 2025 Jon Blau
 
 // SPDX-License-Identifier: GPL-3.0-or-later

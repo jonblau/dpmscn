@@ -1,5 +1,5 @@
-// DPM SCN 0.1
-// PC DSC image utility that displays and analyzes DPM timings from MDS files
+// DPM SCN
+// Disc image utility that displays and analyzes DPM timings from MDS files
 // Copyright (c) 2025 Jon Blau
 
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -32,8 +32,8 @@
 # include "type.h"
 
 int seek_brk (MDS *mds, DPM *dpm, DSC *dsc) ;
-int seek_spk (MDS *mds, DPM *dpm, DSC *dsc, const int lay_num) ;
-int seek_spk_high_precision (MDS *mds, DPM *dpm, DSC *dsc) ;
+int seek_spk (MDS *mds, DPM *dpm, DSC *dsc, int layer) ;
+int seek_spk_50 (MDS *mds, DPM *dpm, DSC *dsc) ;
 int calc_inc_amp (MDS *mds, DPM *dpm, DSC *dsc) ;
 int calc_dec_amp (MDS *mds, DPM *dpm, DSC *dsc) ;
 int seek_reg (MDS *mds, DSC *dsc) ;

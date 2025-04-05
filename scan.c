@@ -1,5 +1,5 @@
-// DPM SCN 0.1
-// PC DSC image utility that displays and analyzes DPM timings from MDS files
+// DPM SCN
+// Disc image utility that displays and analyzes DPM timings from MDS files
 // Copyright (c) 2025 Jon Blau
 
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -24,8 +24,7 @@ int seek_brk (MDS *mds, DPM *dpm, DSC *dsc)
      if (mds->cd || mds->lay < 2)
           return 0 ;
 
-     // defining inferior and superior limits of the layer break area
-     // 4.7 GB as 4700000000 is ~ 2294922 sectors of 2048 bytes/sector
+     // inferior and superior limits of the layer break area
 
      unsigned int smp_inf = (mds->sct / 2) / mds->itv - 1 ;
      unsigned int smp_sup = (2294922) / mds->itv - 1 ;
@@ -50,7 +49,7 @@ int seek_brk (MDS *mds, DPM *dpm, DSC *dsc)
      return 0 ;
 }
 
-int seek_spk (MDS *mds, DPM *dpm, DSC *dsc, const int lay_num)
+int seek_spk (MDS *mds, DPM *dpm, DSC *dsc, int layer)
 {
      unsigned int var_min = 0 ;
      unsigned int var_max = 0 ;
@@ -71,7 +70,7 @@ int seek_spk (MDS *mds, DPM *dpm, DSC *dsc, const int lay_num)
      unsigned int smp_stt = 0 ;
      unsigned int smp_stp = mds->smp - 1 ;
 
-     switch (lay_num)
+     switch (layer)
      {
           case 0 :
                smp_stt = 0 ;
@@ -129,7 +128,7 @@ int seek_spk (MDS *mds, DPM *dpm, DSC *dsc, const int lay_num)
 
      dsc->var_rat = (float) abs (dpm[smp_stt].tim - dpm[smp_stp].tim) * 100 / dsc->var_sum ;
 
-     switch (lay_num)
+     switch (layer)
      {
           case 0 :
                dsc->lay_0_sum = dsc->var_sum ;
@@ -144,7 +143,7 @@ int seek_spk (MDS *mds, DPM *dpm, DSC *dsc, const int lay_num)
      return 0 ;
 }
 
-int seek_spk_high_precision (MDS *mds, DPM *dpm, DSC *dsc)
+int seek_spk_50 (MDS *mds, DPM *dpm, DSC *dsc)
 {
      unsigned long sector = 0 ;
 
@@ -329,19 +328,19 @@ int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc)
 
      if (mds->itv == 50)
      {
-          seek_spk_high_precision (mds, dpm, dsc) ;
+          seek_spk_50 (mds, dpm, dsc) ;
      }
      else switch (mds->lay)
      {
           case 0 :
           case 1 :
-               // analyze whole DSC
+               // analyze whole disc
                seek_spk (mds, dpm, dsc, -1) ;
                break ;
           case 2 :
-               // analyze layer number 0
+               // analyze layer # 0
                seek_spk (mds, dpm, dsc, 0) ;
-               // analyze layer number 1
+               // analyze layer # 1
                seek_spk (mds, dpm, dsc, 1) ;
                break ;
      }
@@ -435,7 +434,7 @@ int show_dsc (MDS *mds, DPM *dpm, DSC *dsc)
      printf ("Region     \t %d starts\n", dsc->stt_cnt) ;
      printf ("           \t %d stops\n\n", dsc->stp_cnt) ;
 
-     printf ("SPK      \t %d increases\n", dsc->inc_cnt) ;
+     printf ("Spike      \t %d increases\n", dsc->inc_cnt) ;
      printf ("           \t %d decreases\n\n", dsc->dec_cnt) ;
 
      printf ("Amplitude  \t %+d to %+d\n", dsc->inc_amp[0], dsc->inc_amp[1]) ;
@@ -446,7 +445,7 @@ int show_dsc (MDS *mds, DPM *dpm, DSC *dsc)
 
 int eval_reg (DSC *dsc)
 {
-     // evaluate DSC density layout consistency using count homogeneity
+     // evaluate disc density layout consistency using count homogeneity
 
      if (dsc->stt_cnt == 0 && dsc->stp_cnt == 0)
      {
@@ -542,7 +541,7 @@ int show_reg (DSC *dsc)
 
 int eval_spk (DSC *dsc, SPK *spk)
 {
-     // evaluate timing SPK length consistency using standard deviation
+     // evaluate timing spike length consistency using standard deviation
 
      unsigned char reg_cnt = dsc->stp_cnt ;
      unsigned char spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;
@@ -580,7 +579,7 @@ int show_spk (DSC *dsc, SPK *spk)
 
      for (int i = 0 ; i < spr_cnt ; i++)
      {
-          printf ("SPK %d \t avg = %.0f \t dev = %.0f\n", i+1, spk[i].avg, spk[i].dev) ;
+          printf ("Spike %d \t avg = %.0f \t dev = %.0f\n", i+1, spk[i].avg, spk[i].dev) ;
      }
 
      return 0 ;
