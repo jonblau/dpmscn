@@ -19,7 +19,7 @@
 
 # include "draw.h"
 
-int calc_crv (MDS *mds, DPM *dpm, SDL_Point *timing, int smp_stt, int smp_stp)
+int calc_tim_crv (MDS *mds, DPM *dpm, SDL_Point *timing, int smp_stt, int smp_stp)
 {
      int zoom = mds->smp / (smp_stp + 1 - smp_stt) ;
 
@@ -29,8 +29,25 @@ int calc_crv (MDS *mds, DPM *dpm, SDL_Point *timing, int smp_stt, int smp_stp)
      {
           sector += mds->itv ;
 
-          timing[i].x = (sector * 640 * zoom / mds->sct) ;
-          timing[i].y = (480 - (dpm[i].tim * 480 / dpm[0].tim)) * 1 + 480 / 10 ;
+          timing[i].x = sector * 640 * zoom / mds->sct ;
+          timing[i].y = 480 - (dpm[i].tim * 480 / dpm[0].tim) + 140 ;
+     }
+
+     return 0 ;
+}
+
+int calc_var_crv (MDS *mds, DPM *dpm, SDL_Point *variation, int smp_stt, int smp_stp)
+{
+     int zoom = mds->smp / (smp_stp + 1 - smp_stt) ;
+
+     unsigned long sector = 0 ;
+
+     for (int i = smp_stt ; i <= smp_stp ; i++)
+     {
+          sector += mds->itv ;
+
+          variation[i].x = sector * 640 * zoom / mds->sct ;
+          variation[i].y = - dpm[i].var + 60 ;
      }
 
      return 0 ;
@@ -43,11 +60,15 @@ bool draw_crv (MDS *mds, DPM *dpm)
      SDL_Texture *texture_1 = NULL ;
      SDL_Texture *texture_2 = NULL ;
      SDL_Point *timing = NULL ;
+     SDL_Point *variation = NULL ;
 
      bool error = false ;
 
      timing = malloc (mds->smp * sizeof (SDL_Point)) ;
      if (timing == NULL) { error = true ; goto quit ; }
+
+     variation = malloc (mds->smp * sizeof (SDL_Point)) ;
+     if (variation == NULL) { error = true ; goto quit ; }
 
      /* initializing */
 
@@ -56,7 +77,7 @@ bool draw_crv (MDS *mds, DPM *dpm)
      action = SDL_Init (SDL_INIT_VIDEO) ;
      if (action != 0) { error = true ; goto quit ; }
 
-     window = SDL_CreateWindow ("DPM curve and pattern", 0, 0, 640, 540, SDL_WINDOW_SHOWN) ;
+     window = SDL_CreateWindow ("DPM curve and pattern", 0, 0, 660, 720, SDL_WINDOW_SHOWN) ;
      if (window == NULL) { error = true ; goto quit ; }
 
      renderer = SDL_CreateRenderer (window, -1, SDL_RENDERER_SOFTWARE) ;
@@ -68,28 +89,18 @@ bool draw_crv (MDS *mds, DPM *dpm)
      texture_2 = SDL_CreateTexture (renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 640, 480) ;
      if (texture_2 == NULL) { error = true ; goto quit ; }
 
-     /* drawing texture_1 */
-
-     SDL_SetRenderTarget (renderer, texture_1) ;
+     /* drawing background */
 
           action = SDL_SetRenderDrawColor (renderer, 55, 55, 55, SDL_ALPHA_OPAQUE) ;
           if (action != 0) { error = true ; goto quit ; }
 
           SDL_RenderClear (renderer) ;
 
-          action = SDL_SetRenderDrawColor (renderer, 255, 0, 0, SDL_ALPHA_OPAQUE) ;
-          if (action != 0) { error = true ; goto quit ; }
+     /* drawing texture_1 */
 
-          calc_crv (mds, dpm, timing, 0, mds->smp - 1) ;
+     SDL_SetRenderTarget (renderer, texture_1) ;
 
-          action = SDL_RenderDrawLines (renderer, timing, mds->smp) ;
-          if (action != 0) { error = true ; goto quit ; }
-
-     /* drawing texture_2 */
-
-     SDL_SetRenderTarget (renderer, texture_2) ;
-
-          action = SDL_SetRenderDrawColor (renderer, 65, 65, 65, SDL_ALPHA_OPAQUE) ;
+          action = SDL_SetRenderDrawColor (renderer, 0, 0, 0, SDL_ALPHA_OPAQUE) ;
           if (action != 0) { error = true ; goto quit ; }
 
           SDL_RenderClear (renderer) ;
@@ -97,21 +108,55 @@ bool draw_crv (MDS *mds, DPM *dpm)
           action = SDL_SetRenderDrawColor (renderer, 255, 0, 0, SDL_ALPHA_OPAQUE) ;
           if (action != 0) { error = true ; goto quit ; }
 
-          calc_crv (mds, dpm, timing, 0, 750 - 1) ;
+          calc_tim_crv (mds, dpm, timing, 0, mds->smp - 1) ;
+
+          action = SDL_RenderDrawLines (renderer, timing, mds->smp) ;
+          if (action != 0) { error = true ; goto quit ; }
+
+          action = SDL_SetRenderDrawColor (renderer, 0, 0, 255, SDL_ALPHA_OPAQUE) ;
+          if (action != 0) { error = true ; goto quit ; }
+
+          calc_var_crv (mds, dpm, variation, 0, mds->smp - 1) ;
+
+          action = SDL_RenderDrawLines (renderer, variation, mds->smp) ;
+          if (action != 0) { error = true ; goto quit ; }
+
+     /* drawing texture_2 */
+
+     SDL_SetRenderTarget (renderer, texture_2) ;
+
+          action = SDL_SetRenderDrawColor (renderer, 0, 0, 0, SDL_ALPHA_OPAQUE) ;
+          if (action != 0) { error = true ; goto quit ; }
+
+          SDL_RenderClear (renderer) ;
+
+          action = SDL_SetRenderDrawColor (renderer, 255, 0, 0, SDL_ALPHA_OPAQUE) ;
+          if (action != 0) { error = true ; goto quit ; }
+
+          calc_tim_crv (mds, dpm, timing, 0, 750 - 1) ;
 
           action = SDL_RenderDrawLines (renderer, timing, 750) ;
+          if (action != 0) { error = true ; goto quit ; }
+
+          action = SDL_SetRenderDrawColor (renderer, 0, 0, 255, SDL_ALPHA_OPAQUE) ;
+          if (action != 0) { error = true ; goto quit ; }
+
+          calc_var_crv (mds, dpm, variation, 0, 750 - 1) ;
+
+          action = SDL_RenderDrawLines (renderer, variation, 750) ;
           if (action != 0) { error = true ; goto quit ; }
 
      /* rendering */
 
      SDL_SetRenderTarget (renderer, NULL) ;
 
-          SDL_Rect area_1 = {0, 0, 640, 360} ;
-          SDL_Rect area_2 = {0, 0, 640, 180} ;
-          SDL_Rect area_3 = {0, 360, 640, 180} ;
+          SDL_Rect area_1 = {0, 0, 640, 440} ;
+          SDL_Rect area_2 = {10, 10, 640, 440} ;
+          SDL_Rect area_3 = {0, 0, 640, 250} ;
+          SDL_Rect area_4 = {10, 460, 640, 250} ;
 
-          SDL_RenderCopy (renderer, texture_1, &area_1, &area_1) ;
-          SDL_RenderCopy (renderer, texture_2, &area_2, &area_3) ;
+          SDL_RenderCopy (renderer, texture_1, &area_1, &area_2) ;
+          SDL_RenderCopy (renderer, texture_2, &area_3, &area_4) ;
 
           SDL_RenderPresent (renderer) ;
 
@@ -140,6 +185,7 @@ bool draw_crv (MDS *mds, DPM *dpm)
 
      if (error == true)       SDL_Log ("%s\n", SDL_GetError()) ;
      if (timing != NULL)      free (timing) ;
+     if (variation != NULL)   free (variation) ;
 
      if (texture_2 != NULL)   SDL_DestroyTexture (texture_2) ;
      if (texture_1 != NULL)   SDL_DestroyTexture (texture_1) ;
