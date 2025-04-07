@@ -614,7 +614,7 @@ int main (int argc, char **argv)
      int pid = fork () ;
      if (pid == 0)
      {
-          draw_crv (&mds, dpm) ;
+          draw_dpm (&mds, dpm) ;
 
           free (dpm) ;
           dpm = NULL ;
@@ -624,7 +624,7 @@ int main (int argc, char **argv)
 
      # else
 
-     draw_crv (&mds, dpm) ;
+     draw_dpm (&mds, dpm) ;
 
      # endif
 

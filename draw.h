@@ -25,7 +25,8 @@
 
 # include "type.h"
 
-int calc_crv (MDS *mds, DPM *dpm, SDL_Point *timing, int smp_stt, int smp_stp) ;
-bool draw_crv (MDS *mds, DPM *dpm) ;
+int calc_tim_crv (MDS *mds, DPM *dpm, SDL_Point *timing, int smp_stt, int smp_stp) ;
+int calc_var_crv (MDS *mds, DPM *dpm, SDL_Point *variation, int smp_stt, int smp_stp) ;
+bool draw_dpm (MDS *mds, DPM *dpm) ;
 
 # endif

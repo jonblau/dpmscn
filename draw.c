@@ -51,7 +51,7 @@ int calc_var_crv (MDS *mds, DPM *dpm, SDL_Point *variation, int smp_stt, int smp
      return 0 ;
 }
 
-bool draw_crv (MDS *mds, DPM *dpm)
+bool draw_dpm (MDS *mds, DPM *dpm)
 {
      SDL_Window *window = NULL ;
      SDL_Renderer *renderer = NULL ;
