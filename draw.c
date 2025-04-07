@@ -21,14 +21,14 @@
 
 int calc_tim_crv (MDS *mds, DPM *dpm, SDL_Point *timing, int smp_stt, int smp_stp)
 {
-     int zoom = mds->smp / (smp_stp + 1 - smp_stt) ;
+     float zoom_x = (float) mds->smp / (smp_stp - smp_stt + 1) ;
      unsigned long sector = 0 ;
 
      for (int i = smp_stt ; i <= smp_stp ; i++)
      {
           sector += mds->itv ;
 
-          timing[i].x = sector * 640 * zoom / mds->sct ;
+          timing[i].x = sector * zoom_x * 640 / mds->sct ;
           timing[i].y = 480 - (dpm[i].tim * 480 / dpm[0].tim) + 140 ;
      }
 
@@ -37,14 +37,14 @@ int calc_tim_crv (MDS *mds, DPM *dpm, SDL_Point *timing, int smp_stt, int smp_st
 
 int calc_var_crv (MDS *mds, DPM *dpm, SDL_Point *variation, int smp_stt, int smp_stp)
 {
-     int zoom = mds->smp / (smp_stp + 1 - smp_stt) ;
+     float zoom_x = (float) mds->smp / (smp_stp - smp_stt + 1) ;
      unsigned long sector = 0 ;
 
      for (int i = smp_stt ; i <= smp_stp ; i++)
      {
           sector += mds->itv ;
 
-          variation[i].x = sector * 640 * zoom / mds->sct ;
+          variation[i].x = sector * zoom_x * 640 / mds->sct ;
           variation[i].y = - dpm[i].var + 60 ;
      }
 
