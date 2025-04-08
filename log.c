@@ -66,6 +66,60 @@ int save_dsc (FILE *file, MDS *mds, DPM *dpm, DSC *dsc)
      return 0 ;
 }
 
+int save_reg (FILE *file, DSC *dsc)
+{
+     if (dsc->stp_cnt == 0)
+          return 1 ;
+
+     unsigned char reg_cnt = dsc->stp_cnt ;
+     unsigned char spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;
+
+     fprintf (file, "Layout     \t %d x %d\n\n", reg_cnt, spr_cnt) ;
+
+     unsigned long reg_len = 0 ;
+
+     for (int i = 0 ; i < reg_cnt ; i++)
+     {
+          reg_len = dsc->stp_lba[i] - dsc->stt_lba[i] ;
+
+          fprintf (file, "Region %d   \t LBA = [%ld - %ld]\n", i+1, dsc->stt_lba[i], dsc->stp_lba[i]) ;
+          fprintf (file, "            \t %ld sectors\n", reg_len) ;
+     }
+
+     fprintf (file, "\n") ;
+
+     unsigned long itv_len = 0 ;
+
+     for (int i = 0 ; i < reg_cnt - 1 ; i++)
+     {
+          itv_len = dsc->stt_lba[i+1] - dsc->stp_lba[i] ;
+
+          fprintf (file, "Gap %d      \t %ld sectors\n", i+1, itv_len) ;
+     }
+
+     if (reg_cnt > 1)
+          fprintf (file, "\n") ;
+
+     return 0 ;
+}
+
+int save_spk (FILE *file, DSC *dsc, SPK *spk)
+{
+     if (dsc->stp_cnt == 0)
+          return 1 ;
+
+     unsigned char spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;
+
+     for (int i = 0 ; i < spr_cnt ; i++)
+     {
+          fprintf (file, "Spike %d    \t avg = %.0f \t dev = %.0f\n", i+1, spk[i].avg, spk[i].dev) ;
+     }
+
+     fprintf (file, "\n") ;
+
+     return 0 ;
+}
+
 int save_dpm (FILE *file, MDS *mds, DPM *dpm, DSC *dsc)
 {
      unsigned long sector = 0 ;
@@ -97,13 +151,15 @@ int save_dpm (FILE *file, MDS *mds, DPM *dpm, DSC *dsc)
      return 0 ;
 }
 
-int save_log (MDS *mds, DPM *dpm, DSC *dsc)
+int save_log (MDS *mds, DPM *dpm, DSC *dsc, SPK *spk)
 {
      FILE *file = fopen ("scan.log", "w") ;
      if (file == NULL)
           return 1 ;
 
      save_dsc (file, mds, dpm, dsc) ;
+     save_reg (file, dsc) ;
+     save_spk (file, dsc, spk) ;
      save_dpm (file, mds, dpm, dsc) ;
 
      fclose (file) ;

@@ -43,11 +43,8 @@ int seek_spk_50 (MDS *mds, DPM *dpm, DSC *dsc) ;
 int calc_inc_amp (MDS *mds, DPM *dpm, DSC *dsc) ;
 int calc_dec_amp (MDS *mds, DPM *dpm, DSC *dsc) ;
 int seek_reg (MDS *mds, DSC *dsc) ;
-int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc) ;
-int show_dsc (MDS *mds, DPM *dpm, DSC *dsc) ;
 int eval_reg (DSC *dsc) ;
-int show_reg (DSC *dsc) ;
 int eval_spk (DSC *dsc, SPK *spk) ;
-int show_spk (DSC *dsc, SPK *spk) ;
+int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc) ;
 
 # endif

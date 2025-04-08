@@ -322,40 +322,6 @@ int seek_reg (MDS *mds, DSC *dsc)
      return 0 ;
 }
 
-int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc)
-{
-     seek_brk (mds, dpm, dsc) ;
-
-     if (mds->itv == 50)
-     {
-          seek_spk_50 (mds, dpm, dsc) ;
-     }
-     else switch (mds->lay)
-     {
-          case 0 :
-          case 1 :
-               // analyze whole disc
-               seek_spk (mds, dpm, dsc, -1) ;
-               break ;
-          case 2 :
-               // analyze layer # 0
-               seek_spk (mds, dpm, dsc, 0) ;
-               // analyze layer # 1
-               seek_spk (mds, dpm, dsc, 1) ;
-               break ;
-     }
-
-     if (dsc->inc_cnt)
-          calc_inc_amp (mds, dpm, dsc) ;
-
-     if (dsc->dec_cnt)
-          calc_dec_amp (mds, dpm, dsc) ;
-
-     seek_reg (mds, dsc) ;
-
-     return 0 ;
-}
-
 int eval_reg (DSC *dsc)
 {
      // evaluate disc density layout consistency using count homogeneity
@@ -363,17 +329,17 @@ int eval_reg (DSC *dsc)
      if (dsc->stt_cnt == 0 && dsc->stp_cnt == 0)
      {
           printf ("Layout     \t Normal density\n") ;
-          exit (EXIT_SUCCESS) ;
+          return 1 ;
      }
      else if (dsc->inc_cnt != dsc->dec_cnt || dsc->stt_cnt != dsc->stp_cnt)
      {
           fprintf (stderr, "Layout     \t Unreliable\n") ;
-          exit (EXIT_FAILURE) ;
+          return 1 ;
      }
      else if (dsc->dec_cnt % dsc->stp_cnt != 0)
      {
           fprintf (stderr, "Layout     \t Unreliable\n") ;
-          exit (EXIT_FAILURE) ;
+          return 1 ;
      }
 
      unsigned char reg_cnt = dsc->stp_cnt ;
@@ -411,43 +377,9 @@ int eval_reg (DSC *dsc)
           if (ipr_cnt != spr_cnt || dpr_cnt != spr_cnt)
           {
                fprintf (stderr, "Layout     \t Unreliable\n") ;
-               exit (EXIT_FAILURE) ;
+               return 1 ;
           }
      }
-
-     return 0 ;
-}
-
-int show_reg (DSC *dsc)
-{
-     unsigned char reg_cnt = dsc->stp_cnt ;
-     unsigned char spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;
-
-     printf ("Layout     \t %d x %d\n\n", reg_cnt, spr_cnt) ;
-
-     unsigned long reg_len = 0 ;
-
-     for (int i = 0 ; i < reg_cnt ; i++)
-     {
-          reg_len = dsc->stp_lba[i] - dsc->stt_lba[i] ;
-
-          printf ("Region %d \t LBA = [%ld - %ld]\n", i+1, dsc->stt_lba[i], dsc->stp_lba[i]) ;
-          printf ("          \t %ld sectors\n", reg_len) ;
-     }
-
-     printf ("\n") ;
-
-     unsigned long itv_len = 0 ;
-
-     for (int i = 0 ; i < reg_cnt - 1 ; i++)
-     {
-          itv_len = dsc->stt_lba[i+1] - dsc->stp_lba[i] ;
-
-          printf ("Gap %d    \t %ld sectors\n", i+1, itv_len) ;
-     }
-
-     if (reg_cnt > 1)
-          printf ("\n") ;
 
      return 0 ;
 }
@@ -455,6 +387,9 @@ int show_reg (DSC *dsc)
 int eval_spk (DSC *dsc, SPK *spk)
 {
      // evaluate timing spike length consistency using standard deviation
+
+     if (dsc->stp_cnt == 0)
+          return 1 ;
 
      unsigned char reg_cnt = dsc->stp_cnt ;
      unsigned char spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;
@@ -486,14 +421,57 @@ int eval_spk (DSC *dsc, SPK *spk)
      return 0 ;
 }
 
-int show_spk (DSC *dsc, SPK *spk)
+int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc)
 {
-     unsigned char spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;
+     seek_brk (mds, dpm, dsc) ;
 
-     for (int i = 0 ; i < spr_cnt ; i++)
+     if (mds->itv == 50)
      {
-          printf ("Spike %d \t avg = %.0f \t dev = %.0f\n", i+1, spk[i].avg, spk[i].dev) ;
+          seek_spk_50 (mds, dpm, dsc) ;
      }
+     else switch (mds->lay)
+     {
+          case 0 :
+          case 1 :
+               // analyze whole disc
+               seek_spk (mds, dpm, dsc, -1) ;
+               break ;
+          case 2 :
+               // analyze layer # 0
+               seek_spk (mds, dpm, dsc, 0) ;
+               // analyze layer # 1
+               seek_spk (mds, dpm, dsc, 1) ;
+               break ;
+     }
+
+     if (dsc->inc_cnt)
+          calc_inc_amp (mds, dpm, dsc) ;
+
+     if (dsc->dec_cnt)
+          calc_dec_amp (mds, dpm, dsc) ;
+
+     seek_reg (mds, dsc) ;
+     eval_reg (dsc) ;
+
+     unsigned char spr_cnt = 0 ;
+
+     if (dsc->stp_cnt)
+          spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;
+
+     SPK *spk = calloc (spr_cnt, sizeof (SPK)) ;
+     if (spk == NULL)
+     {
+          free (dpm) ;
+          dpm = NULL ;
+          exit (EXIT_FAILURE) ;
+     }
+
+     eval_spk (dsc, spk) ;
+
+     save_log (mds, dpm, dsc, spk) ;
+
+     free (spk) ;
+     spk = NULL ;
 
      return 0 ;
 }
@@ -544,25 +522,9 @@ int main (int argc, char **argv)
      DSC dsc = {0} ;
 
      eval_dpm (&mds, dpm, &dsc) ;
-     save_log (&mds, dpm, &dsc) ;
 
      free (dpm) ;
      dpm = NULL ;
-
-     eval_reg (&dsc) ;
-     show_reg (&dsc) ;
-
-     unsigned char spr_cnt = dsc.dec_cnt / dsc.stp_cnt ;
-
-     SPK *spk = calloc (spr_cnt, sizeof (SPK)) ;
-     if (spk == NULL)
-          exit (EXIT_FAILURE) ;
-
-     eval_spk (&dsc, spk) ;
-     show_spk (&dsc, spk) ;
-
-     free (spk) ;
-     spk = NULL ;
 
      return 0 ;
 }
