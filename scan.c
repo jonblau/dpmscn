@@ -356,93 +356,6 @@ int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc)
      return 0 ;
 }
 
-int save_log (MDS *mds, DPM *dpm, DSC *dsc)
-{
-     FILE *file = fopen ("scan.log", "w") ;
-     if (file == NULL)
-     {
-          free (dpm) ;
-          exit (EXIT_FAILURE) ;
-     }
-
-     unsigned long sector = 0 ;
-     unsigned char inc_num = 0 ;
-     unsigned char dec_num = 0 ;
-     char mark = '|' ;
-
-     for (int i = 0 ; i < mds->smp ; i++)
-     {
-          sector += mds->itv ;
-
-          if (inc_num < dsc->inc_cnt && sector == dsc->inc_lba[inc_num])
-          {
-               fprintf (file, "\t\t\t\t\t\t\t\t   INCREASE # %d\n", inc_num + 1) ;
-               mark = '>' ;
-               inc_num += 1 ;
-          }
-          else if (dec_num < dsc->dec_cnt && sector == dsc->dec_lba[dec_num])
-          {
-               fprintf (file, "\t\t\t\t\t\t\t\t   DECREASE # %d\n", dec_num + 1) ;
-               mark = '|' ;
-               dec_num += 1 ;
-          }
-
-          fprintf (file, "[%07ld - %07ld] %08ld %d %+d \t %c\n",
-                   sector - mds->itv, sector, dpm[i].raw, dpm[i].tim, dpm[i].var, mark) ;
-     }
-
-     fclose (file) ;
-
-     return 0 ;
-}
-
-int show_dsc (MDS *mds, DPM *dpm, DSC *dsc)
-{
-     printf ("Format     \t %s %s\n\n", mds->cd ? "CD" : "DVD", mds->mod) ;
-
-     printf ("Size       \t %ld sectors\n", mds->sct) ;
-     printf ("Interval   \t %d sectors\n", mds->itv) ;
-     printf ("Measure    \t %d samples\n\n", mds->smp) ;
-
-     if (mds->lay == 2)
-     {
-          printf ("Break      \t LBA ~ %ld\n", dsc->brk_lba) ;
-          printf ("Path       \t %s\n\n", dsc->trk_pth) ;
-
-          printf ("Layer      \t # 0\n") ;
-          printf ("Timing     \t %d to %d\n", dpm[0].tim, dpm[dsc->brk_smp].tim) ;
-          printf ("Variation  \t %d\n", dsc->lay_0_sum) ;
-          printf ("Curve      \t %.2f %%\n\n", dsc->lay_0_rat) ;
-
-          printf ("Layer      \t # 1\n") ;
-          printf ("Timing     \t %d to %d\n", dpm[dsc->brk_smp+1].tim, dpm[mds->smp-1].tim) ;
-          printf ("Variation  \t %d\n", dsc->lay_1_sum) ;
-          printf ("Curve      \t %.2f %%\n\n", dsc->lay_1_rat) ;
-     }
-     else
-     {
-          printf ("Timing     \t %d to %d\n", dpm[0].tim, dpm[mds->smp-1].tim) ;
-          printf ("Variation  \t %d\n", dsc->var_sum) ;
-          printf ("Curve      \t %.2f %%\n\n", dsc->var_rat) ;
-     }
-
-     if (mds->itv == 50)
-     {
-          printf ("Accuracy   \t %d errors\n\n", dsc->err_cnt) ;
-     }
-
-     printf ("Region     \t %d starts\n", dsc->stt_cnt) ;
-     printf ("           \t %d stops\n\n", dsc->stp_cnt) ;
-
-     printf ("Spike      \t %d increases\n", dsc->inc_cnt) ;
-     printf ("           \t %d decreases\n\n", dsc->dec_cnt) ;
-
-     printf ("Amplitude  \t %+d to %+d\n", dsc->inc_amp[0], dsc->inc_amp[1]) ;
-     printf ("           \t %+d to %+d\n\n", dsc->dec_amp[0], dsc->dec_amp[1]) ;
-
-     return 0 ;
-}
-
 int eval_reg (DSC *dsc)
 {
      // evaluate disc density layout consistency using count homogeneity
@@ -632,7 +545,6 @@ int main (int argc, char **argv)
 
      eval_dpm (&mds, dpm, &dsc) ;
      save_log (&mds, dpm, &dsc) ;
-     show_dsc (&mds, dpm, &dsc) ;
 
      free (dpm) ;
      dpm = NULL ;
