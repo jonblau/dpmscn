@@ -169,9 +169,18 @@ bool draw_dpm (MDS *mds, DPM *dpm)
           {
                switch (event.type)
                {
+                    case SDL_KEYDOWN :
+                         switch (event.key.keysym.sym)
+                         {
+                              case SDLK_ESCAPE :
+                                   execution = false ;
+                                   break ;
+                         }
+                         break ;
+
                     case SDL_QUIT :
-                    execution = false ;
-                    break ;
+                         execution = false ;
+                         break ;
                }
           }
      }
