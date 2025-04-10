@@ -20,31 +20,22 @@
 # ifndef SCAN_H
 # define SCAN_H
 
-# include <math.h>
-# include <stdbool.h>
 # include <stdio.h>
 # include <stdlib.h>
-# include <string.h>
+# include <math.h>
 
-# if LINUX
-
-# include <unistd.h>
-
-# endif
-
-# include "draw.h"
-# include "log.h"
-# include "parse.h"
 # include "type.h"
+# include "log.h"
 
-int seek_brk (MDS *mds, DPM *dpm, DSC *dsc) ;
-int seek_spk (MDS *mds, DPM *dpm, DSC *dsc, int layer) ;
-int seek_spk_50 (MDS *mds, DPM *dpm, DSC *dsc) ;
-int calc_inc_amp (MDS *mds, DPM *dpm, DSC *dsc) ;
-int calc_dec_amp (MDS *mds, DPM *dpm, DSC *dsc) ;
-int seek_reg (MDS *mds, DSC *dsc) ;
-int eval_reg (DSC *dsc) ;
-int eval_spk (DSC *dsc, SPK *spk) ;
+static int seek_brk (MDS *mds, DPM *dpm, DSC *dsc) ;
+static int seek_spk (MDS *mds, DPM *dpm, DSC *dsc, int layer) ;
+static int seek_spk_50 (MDS *mds, DPM *dpm, DSC *dsc) ;
+static int calc_inc_amp (MDS *mds, DPM *dpm, DSC *dsc) ;
+static int calc_dec_amp (MDS *mds, DPM *dpm, DSC *dsc) ;
+static int seek_reg (MDS *mds, DSC *dsc) ;
+static int eval_reg (DSC *dsc) ;
+static int eval_spk (DSC *dsc, SPK *spk) ;
+
 int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc) ;
 
 # endif

@@ -19,7 +19,7 @@
 
 # include "scan.h"
 
-int seek_brk (MDS *mds, DPM *dpm, DSC *dsc)
+static int seek_brk (MDS *mds, DPM *dpm, DSC *dsc)
 {
      if (mds->cd || mds->lay < 2)
           return 0 ;
@@ -49,7 +49,7 @@ int seek_brk (MDS *mds, DPM *dpm, DSC *dsc)
      return 0 ;
 }
 
-int seek_spk (MDS *mds, DPM *dpm, DSC *dsc, int layer)
+static int seek_spk (MDS *mds, DPM *dpm, DSC *dsc, int layer)
 {
      unsigned int var_min = 0 ;
      unsigned int var_max = 0 ;
@@ -143,7 +143,7 @@ int seek_spk (MDS *mds, DPM *dpm, DSC *dsc, int layer)
      return 0 ;
 }
 
-int seek_spk_50 (MDS *mds, DPM *dpm, DSC *dsc)
+static int seek_spk_50 (MDS *mds, DPM *dpm, DSC *dsc)
 {
      unsigned long sector = 0 ;
 
@@ -242,7 +242,7 @@ int seek_spk_50 (MDS *mds, DPM *dpm, DSC *dsc)
      return 0 ;
 }
 
-int calc_inc_amp (MDS *mds, DPM *dpm, DSC *dsc)
+static int calc_inc_amp (MDS *mds, DPM *dpm, DSC *dsc)
 {
      unsigned int fis = dsc->inc_lba[0] / mds->itv - 1 ;
      unsigned int lis = dsc->inc_lba[dsc->inc_cnt-1] / mds->itv - 1 ;
@@ -253,7 +253,7 @@ int calc_inc_amp (MDS *mds, DPM *dpm, DSC *dsc)
      return 0 ;
 }
 
-int calc_dec_amp (MDS *mds, DPM *dpm, DSC *dsc)
+static int calc_dec_amp (MDS *mds, DPM *dpm, DSC *dsc)
 {
      unsigned int fds = dsc->dec_lba[0] / mds->itv - 1 ;
      unsigned int lds = dsc->dec_lba[dsc->dec_cnt-1] / mds->itv - 1 ;
@@ -264,7 +264,7 @@ int calc_dec_amp (MDS *mds, DPM *dpm, DSC *dsc)
      return 0 ;
 }
 
-int seek_reg (MDS *mds, DSC *dsc)
+static int seek_reg (MDS *mds, DSC *dsc)
 {
      unsigned int threshold = 0 ;
 
@@ -322,7 +322,7 @@ int seek_reg (MDS *mds, DSC *dsc)
      return 0 ;
 }
 
-int eval_reg (DSC *dsc)
+static int eval_reg (DSC *dsc)
 {
      // evaluate disc density layout consistency using count homogeneity
 
@@ -384,7 +384,7 @@ int eval_reg (DSC *dsc)
      return 0 ;
 }
 
-int eval_spk (DSC *dsc, SPK *spk)
+static int eval_spk (DSC *dsc, SPK *spk)
 {
      // evaluate timing spike length consistency using standard deviation
 
@@ -472,59 +472,6 @@ int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc)
 
      free (spk) ;
      spk = NULL ;
-
-     return 0 ;
-}
-
-int main (int argc, char **argv)
-{
-     if (argc < 2)
-          exit (EXIT_FAILURE) ;
-
-     char *path = argv[1] ;
-
-     FILE *file = fopen (path, "rb") ;
-     if (file == NULL)
-          exit (EXIT_FAILURE) ;
-
-     MDS mds = {0} ;
-
-     read_mds (file, &mds) ;
-
-     DPM *dpm = calloc (mds.smp, sizeof (DPM)) ;
-     if (dpm == NULL)
-          exit (EXIT_FAILURE) ;
-
-     read_dpm (file, &mds, dpm) ;
-
-     fclose (file) ;
-     file = NULL ;
-
-     # if LINUX
-
-     int pid = fork () ;
-     if (pid == 0)
-     {
-          draw_dpm (&mds, dpm) ;
-
-          free (dpm) ;
-          dpm = NULL ;
-
-          return 0 ;
-     }
-
-     # else
-
-     draw_dpm (&mds, dpm) ;
-
-     # endif
-
-     DSC dsc = {0} ;
-
-     eval_dpm (&mds, dpm, &dsc) ;
-
-     free (dpm) ;
-     dpm = NULL ;
 
      return 0 ;
 }

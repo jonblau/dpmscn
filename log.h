@@ -25,10 +25,11 @@
 
 # include "type.h"
 
-int save_dsc (FILE *file, MDS *mds, DPM *dpm, DSC *dsc) ;
-int save_reg (FILE *file, DSC *dsc) ;
-int save_spk (FILE *file, DSC *dsc, SPK *spk) ;
-int save_dpm (FILE *file, MDS *mds, DPM *dpm, DSC *dsc) ;
+static int save_dsc (FILE *file, MDS *mds, DPM *dpm, DSC *dsc) ;
+static int save_reg (FILE *file, DSC *dsc) ;
+static int save_spk (FILE *file, DSC *dsc, SPK *spk) ;
+static int save_dpm (FILE *file, MDS *mds, DPM *dpm, DSC *dsc) ;
+
 int save_log (MDS *mds, DPM *dpm, DSC *dsc, SPK *spk) ;
 
 # endif

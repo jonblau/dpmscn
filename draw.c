@@ -19,7 +19,7 @@
 
 # include "draw.h"
 
-int calc_tim_crv (MDS *mds, DPM *dpm, SDL_Point *timing, int smp_stt, int smp_stp)
+static int calc_tim_crv (MDS *mds, DPM *dpm, SDL_Point *timing, int smp_stt, int smp_stp)
 {
      float zoom_x = (float) mds->smp / (smp_stp - smp_stt + 1) ;
      unsigned long sector = 0 ;
@@ -35,7 +35,7 @@ int calc_tim_crv (MDS *mds, DPM *dpm, SDL_Point *timing, int smp_stt, int smp_st
      return 0 ;
 }
 
-int calc_var_crv (MDS *mds, DPM *dpm, SDL_Point *variation, int smp_stt, int smp_stp)
+static int calc_var_crv (MDS *mds, DPM *dpm, SDL_Point *variation, int smp_stt, int smp_stp)
 {
      float zoom_x = (float) mds->smp / (smp_stp - smp_stt + 1) ;
      unsigned long sector = 0 ;

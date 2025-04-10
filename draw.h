@@ -20,13 +20,14 @@
 # ifndef DRAW_H
 # define DRAW_H
 
-# include <SDL.h>
 # include <stdbool.h>
+# include <SDL.h>
 
 # include "type.h"
 
-int calc_tim_crv (MDS *mds, DPM *dpm, SDL_Point *timing, int smp_stt, int smp_stp) ;
-int calc_var_crv (MDS *mds, DPM *dpm, SDL_Point *variation, int smp_stt, int smp_stp) ;
+static int calc_tim_crv (MDS *mds, DPM *dpm, SDL_Point *timing, int smp_stt, int smp_stp) ;
+static int calc_var_crv (MDS *mds, DPM *dpm, SDL_Point *variation, int smp_stt, int smp_stp) ;
+
 bool draw_dpm (MDS *mds, DPM *dpm) ;
 
 # endif

@@ -19,7 +19,7 @@
 
 # include "log.h"
 
-int save_dsc (FILE *file, MDS *mds, DPM *dpm, DSC *dsc)
+static int save_dsc (FILE *file, MDS *mds, DPM *dpm, DSC *dsc)
 {
      fprintf (file, "Format     \t %s %s\n\n", mds->cd ? "CD" : "DVD", mds->mod) ;
 
@@ -66,7 +66,7 @@ int save_dsc (FILE *file, MDS *mds, DPM *dpm, DSC *dsc)
      return 0 ;
 }
 
-int save_reg (FILE *file, DSC *dsc)
+static int save_reg (FILE *file, DSC *dsc)
 {
      if (dsc->stp_cnt == 0)
           return 1 ;
@@ -103,7 +103,7 @@ int save_reg (FILE *file, DSC *dsc)
      return 0 ;
 }
 
-int save_spk (FILE *file, DSC *dsc, SPK *spk)
+static int save_spk (FILE *file, DSC *dsc, SPK *spk)
 {
      if (dsc->stp_cnt == 0)
           return 1 ;
@@ -120,7 +120,7 @@ int save_spk (FILE *file, DSC *dsc, SPK *spk)
      return 0 ;
 }
 
-int save_dpm (FILE *file, MDS *mds, DPM *dpm, DSC *dsc)
+static int save_dpm (FILE *file, MDS *mds, DPM *dpm, DSC *dsc)
 {
      unsigned long sector = 0 ;
      unsigned char inc_num = 0 ;
