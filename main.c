@@ -31,14 +31,16 @@
 
 int main (int argc, char **argv)
 {
+     int error = 0 ;
+
      if (argc < 2)
-          exit (EXIT_FAILURE) ;
+          { error = 1 ; goto quit ; }
 
      char *path = argv[1] ;
 
      FILE *file = fopen (path, "rb") ;
      if (file == NULL)
-          exit (EXIT_FAILURE) ;
+          { error = 2 ; goto quit ; }
 
      MDS mds = {0} ;
 
@@ -46,7 +48,7 @@ int main (int argc, char **argv)
 
      DPM *dpm = calloc (mds.smp, sizeof (DPM)) ;
      if (dpm == NULL)
-          exit (EXIT_FAILURE) ;
+          { error = 3 ; goto quit ; }
 
      read_dpm (file, &mds, dpm) ;
 
@@ -61,7 +63,6 @@ int main (int argc, char **argv)
           draw_dpm (&mds, dpm) ;
 
           free (dpm) ;
-          dpm = NULL ;
 
           return 0 ;
      }
@@ -76,8 +77,14 @@ int main (int argc, char **argv)
 
      eval_dpm (&mds, dpm, &dsc) ;
 
-     free (dpm) ;
-     dpm = NULL ;
+     quit :
 
-     return 0 ;
+     if (dpm != NULL)
+          free (dpm) ;
+     if (file != NULL)
+          fclose (file) ;
+     if (error != 0)
+          fprintf (stderr, "\e[1;31mError # %d\e[0m\n", error) ;
+
+     return error ;
 }
