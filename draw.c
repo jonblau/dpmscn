@@ -158,6 +158,16 @@ bool draw_dpm (MDS *mds, DPM *dpm)
 
           SDL_RenderPresent (renderer) ;
 
+     /* exporting */
+
+     SDL_Surface *surface = NULL ;
+
+     surface = SDL_GetWindowSurface (window) ;
+     if (surface == NULL) { error = true ; goto quit ; }
+
+     action = SDL_SaveBMP (surface, "scan.bmp") ;
+     if (action != 0) { error = true ; goto quit ; }
+
      /* waiting */
 
      SDL_Event event = {0} ;
@@ -195,7 +205,7 @@ bool draw_dpm (MDS *mds, DPM *dpm)
      if (texture_2 != NULL)   SDL_DestroyTexture (texture_2) ;
      if (texture_1 != NULL)   SDL_DestroyTexture (texture_1) ;
      if (renderer != NULL)    SDL_DestroyRenderer (renderer) ;
-     if (window != NULL)      SDL_DestroyWindow (window) ;
+     if (window != NULL)      SDL_DestroyWindow (window) ; // also frees the attached surface
 
      SDL_Quit() ;
 
