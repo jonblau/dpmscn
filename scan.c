@@ -427,6 +427,7 @@ int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc)
 
      if (mds->itv == 50)
      {
+          dsc->tim_avg = dpm[mds->smp-1].raw / mds->smp ;
           seek_spk_50 (mds, dpm, dsc) ;
      }
      else switch (mds->lay)
@@ -434,12 +435,15 @@ int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc)
           case 0 :
           case 1 :
                // analyze whole disc
+               dsc->tim_avg = dpm[mds->smp-1].raw / mds->smp ;
                seek_spk (mds, dpm, dsc, -1) ;
                break ;
           case 2 :
                // analyze layer # 0
+               dsc->lay_0_avg = dpm[dsc->brk_smp].raw / (dsc->brk_smp+1) ;
                seek_spk (mds, dpm, dsc, 0) ;
                // analyze layer # 1
+               dsc->lay_1_avg = (dpm[mds->smp-1].raw - dpm[dsc->brk_smp].raw) / (mds->smp - (dsc->brk_smp+1)) ;
                seek_spk (mds, dpm, dsc, 1) ;
                break ;
      }

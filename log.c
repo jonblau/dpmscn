@@ -33,18 +33,18 @@ static int save_dsc (FILE *file, MDS *mds, DPM *dpm, DSC *dsc)
           fprintf (file, "Path       \t %s\n\n", dsc->trk_pth) ;
 
           fprintf (file, "Layer      \t # 0\n") ;
-          fprintf (file, "Timing     \t %d to %d\n", dpm[0].tim, dpm[dsc->brk_smp].tim) ;
+          fprintf (file, "Timing     \t %d [%d - %d]\n", dsc->lay_0_avg, dpm[0].tim, dpm[dsc->brk_smp].tim) ;
           fprintf (file, "Variation  \t %d\n", dsc->lay_0_sum) ;
           fprintf (file, "Curve      \t %.2f %%\n\n", dsc->lay_0_rat) ;
 
           fprintf (file, "Layer      \t # 1\n") ;
-          fprintf (file, "Timing     \t %d to %d\n", dpm[dsc->brk_smp+1].tim, dpm[mds->smp-1].tim) ;
+          fprintf (file, "Timing     \t %d [%d - %d]\n", dsc->lay_1_avg, dpm[dsc->brk_smp+1].tim, dpm[mds->smp-1].tim) ;
           fprintf (file, "Variation  \t %d\n", dsc->lay_1_sum) ;
           fprintf (file, "Curve      \t %.2f %%\n\n", dsc->lay_1_rat) ;
      }
      else
      {
-          fprintf (file, "Timing     \t %d to %d\n", dpm[0].tim, dpm[mds->smp-1].tim) ;
+          fprintf (file, "Timing     \t %d [%d - %d]\n", dsc->tim_avg, dpm[0].tim, dpm[mds->smp-1].tim) ;
           fprintf (file, "Variation  \t %d\n", dsc->var_sum) ;
           fprintf (file, "Curve      \t %.2f %%\n\n", dsc->var_rat) ;
      }

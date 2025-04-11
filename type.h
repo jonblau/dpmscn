@@ -59,6 +59,9 @@ typedef struct dsc
      unsigned int brk_smp ;
      unsigned long brk_lba ;
      char trk_pth[9] ;
+     unsigned int tim_avg ;
+     unsigned int lay_0_avg ;
+     unsigned int lay_1_avg ;
      unsigned int err_cnt ;
      unsigned int var_sum ;
      unsigned int lay_0_sum ;
