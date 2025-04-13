@@ -29,13 +29,14 @@ static int save_dsc (FILE *file, MDS *mds, DPM *dpm, DSC *dsc)
 
      if (mds->lay == 2)
      {
-          fprintf (file, "Break      \t LBA ~ %ld\n", dsc->brk_lba) ;
           fprintf (file, "Path       \t %s\n\n", dsc->trk_pth) ;
 
           fprintf (file, "Layer      \t # 0\n") ;
           fprintf (file, "Timing     \t %d [%d - %d]\n", dsc->lay_0_avg, dpm[0].tim, dpm[dsc->brk_smp].tim) ;
           fprintf (file, "Variation  \t %d\n", dsc->lay_0_sum) ;
           fprintf (file, "Curve      \t %.2f %%\n\n", dsc->lay_0_rat) ;
+
+          fprintf (file, "Break      \t LBA ~ %ld\n\n", dsc->brk_lba) ;
 
           fprintf (file, "Layer      \t # 1\n") ;
           fprintf (file, "Timing     \t %d [%d - %d]\n", dsc->lay_1_avg, dpm[dsc->brk_smp+1].tim, dpm[mds->smp-1].tim) ;
