@@ -58,6 +58,7 @@ int main (int argc, char **argv)
      read_dpm (file, &mds, dpm) ;
 
      fclose (file) ;
+     file = NULL ;
 
      # if LINUX
 
@@ -67,6 +68,7 @@ int main (int argc, char **argv)
           draw_dpm (&mds, dpm) ;
 
           free (dpm) ;
+          dpm = NULL ;
 
           return 0 ;
      }
