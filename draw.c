@@ -74,7 +74,7 @@ bool draw_dpm (MDS *mds, DPM *dpm)
      action = SDL_Init (SDL_INIT_VIDEO) ;
      if (action != 0) { error = true ; goto quit ; }
 
-     window = SDL_CreateWindow ("DPM", 0, 0, 660, 720, SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS) ;
+     window = SDL_CreateWindow ("DPM SCN", 0, 0, 660, 720, SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS) ;
      if (window == NULL) { error = true ; goto quit ; }
      renderer = SDL_CreateRenderer (window, -1, SDL_RENDERER_SOFTWARE) ;
      if (renderer == NULL) { error = true ; goto quit ; }
