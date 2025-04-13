@@ -22,7 +22,7 @@
 static int seek_brk (MDS *mds, DPM *dpm, DSC *dsc)
 {
      if (mds->cd || mds->lay < 2)
-          return 0 ;
+          return 1 ;
 
      // inferior and superior limits of the layer break area
 
@@ -42,7 +42,11 @@ static int seek_brk (MDS *mds, DPM *dpm, DSC *dsc)
 
      dsc->brk_lba = (dsc->brk_smp + 1) * mds->itv ;
 
-     if (abs (dpm[smp_inf].tim - dpm[smp_sup+1].tim) < 100)
+     unsigned int test_smp = dsc->brk_smp + 100 ;
+     if (test_smp >= mds->smp)
+          test_smp = mds->smp - 1 ;
+
+     if (abs (dpm[dsc->brk_smp].tim - dpm[test_smp].tim) < 100)
           sprintf (dsc->trk_pth, "opposite") ;
      else sprintf (dsc->trk_pth, "parallel") ;
 
