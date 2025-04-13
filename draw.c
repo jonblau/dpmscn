@@ -89,7 +89,9 @@ bool draw_dpm (MDS *mds, DPM *dpm)
      variation = malloc (mds->smp * sizeof (SDL_Point)) ;
      if (variation == NULL) { error = true ; goto quit ; }
 
-     /* drawing background */
+     /* drawing */
+
+     SDL_SetRenderTarget (renderer, NULL) ;
 
           action = SDL_SetRenderDrawColor (renderer, 55, 55, 55, SDL_ALPHA_OPAQUE) ;
           if (action != 0) { error = true ; goto quit ; }
@@ -108,7 +110,7 @@ bool draw_dpm (MDS *mds, DPM *dpm)
           action = SDL_RenderDrawRect (renderer, &border_3) ;
           if (action != 0) { error = true ; goto quit ; }
 
-     /* drawing texture_1 */
+     unsigned int count = 0 ;
 
      SDL_SetRenderTarget (renderer, texture_1) ;
 
@@ -116,20 +118,20 @@ bool draw_dpm (MDS *mds, DPM *dpm)
           if (action != 0) { error = true ; goto quit ; }
           SDL_RenderClear (renderer) ;
 
-          calc_tim_crv (mds, dpm, timing, 0, mds->smp - 1) ;
-          calc_var_crv (mds, dpm, variation, 0, mds->smp - 1) ;
+          count = mds->smp ;
+
+          calc_tim_crv (mds, dpm, timing, 0, count - 1) ;
+          calc_var_crv (mds, dpm, variation, 0, count - 1) ;
 
           action = SDL_SetRenderDrawColor (renderer, 255, 0, 0, SDL_ALPHA_OPAQUE) ;
           if (action != 0) { error = true ; goto quit ; }
-          action = SDL_RenderDrawLines (renderer, timing, mds->smp) ;
+          action = SDL_RenderDrawLines (renderer, timing, count) ;
           if (action != 0) { error = true ; goto quit ; }
 
           action = SDL_SetRenderDrawColor (renderer, 0, 0, 255, SDL_ALPHA_OPAQUE) ;
           if (action != 0) { error = true ; goto quit ; }
-          action = SDL_RenderDrawLines (renderer, variation, mds->smp) ;
+          action = SDL_RenderDrawLines (renderer, variation, count) ;
           if (action != 0) { error = true ; goto quit ; }
-
-     /* drawing texture_2 */
 
      SDL_SetRenderTarget (renderer, texture_2) ;
 
@@ -137,17 +139,21 @@ bool draw_dpm (MDS *mds, DPM *dpm)
           if (action != 0) { error = true ; goto quit ; }
           SDL_RenderClear (renderer) ;
 
-          calc_tim_crv (mds, dpm, timing, 0, 750 - 1) ;
-          calc_var_crv (mds, dpm, variation, 0, 750 - 1) ;
+          count = 750 ;
+          if (count > mds->smp)
+               count = mds->smp ;
+
+          calc_tim_crv (mds, dpm, timing, 0, count - 1) ;
+          calc_var_crv (mds, dpm, variation, 0, count - 1) ;
 
           action = SDL_SetRenderDrawColor (renderer, 255, 0, 0, SDL_ALPHA_OPAQUE) ;
           if (action != 0) { error = true ; goto quit ; }
-          action = SDL_RenderDrawLines (renderer, timing, 750) ;
+          action = SDL_RenderDrawLines (renderer, timing, count) ;
           if (action != 0) { error = true ; goto quit ; }
 
           action = SDL_SetRenderDrawColor (renderer, 0, 0, 255, SDL_ALPHA_OPAQUE) ;
           if (action != 0) { error = true ; goto quit ; }
-          action = SDL_RenderDrawLines (renderer, variation, 750) ;
+          action = SDL_RenderDrawLines (renderer, variation, count) ;
           if (action != 0) { error = true ; goto quit ; }
 
      /* rendering */
