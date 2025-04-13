@@ -69,8 +69,17 @@ static int save_dsc (FILE *file, MDS *mds, DPM *dpm, DSC *dsc)
 
 static int save_reg (FILE *file, DSC *dsc)
 {
-     if (dsc->stp_cnt == 0)
+     if (dsc->dpm_cat == 1)
+     {
+          fprintf (file, "Layout     \t Normal density\n\n") ;
           return 1 ;
+     }
+
+     if (dsc->dpm_cat == 2)
+     {
+          fprintf (file, "Layout     \t Unreliable\n\n") ;
+          return 1 ;
+     }
 
      unsigned char reg_cnt = dsc->stp_cnt ;
      unsigned char spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;
@@ -106,7 +115,7 @@ static int save_reg (FILE *file, DSC *dsc)
 
 static int save_spk (FILE *file, DSC *dsc, SPK *spk)
 {
-     if (dsc->stp_cnt == 0)
+     if (dsc->dpm_cat == 1 || dsc->dpm_cat == 2)
           return 1 ;
 
      unsigned char spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;

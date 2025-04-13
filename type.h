@@ -69,6 +69,7 @@ typedef struct dsc
      float var_rat ;
      float lay_0_rat ;
      float lay_1_rat ;
+     unsigned int dpm_cat ;
 }
 DSC ;
 

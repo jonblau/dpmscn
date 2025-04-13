@@ -28,6 +28,7 @@
 # include "parse.h"
 # include "draw.h"
 # include "scan.h"
+# include "log.h"
 
 int main (int argc, char **argv)
 {
@@ -75,10 +76,17 @@ int main (int argc, char **argv)
 
      DSC dsc = {0} ;
 
-     eval_dpm (&mds, dpm, &dsc) ;
+     SPK *spk = calloc (1, sizeof (SPK)) ;
+     if (spk == NULL)
+          { error = 4 ; goto quit ; }
+
+     eval_dpm (&mds, dpm, &dsc, spk) ;
+     save_log (&mds, dpm, &dsc, spk) ;
 
      quit :
 
+     if (spk != NULL)
+          free (spk) ;
      if (dpm != NULL)
           free (dpm) ;
      if (file != NULL)

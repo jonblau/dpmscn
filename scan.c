@@ -331,20 +331,11 @@ static int eval_reg (DSC *dsc)
      // evaluate disc density layout consistency using count homogeneity
 
      if (dsc->stt_cnt == 0 && dsc->stp_cnt == 0)
-     {
-          printf ("Layout     \t Normal density\n") ;
           return 1 ;
-     }
      else if (dsc->inc_cnt != dsc->dec_cnt || dsc->stt_cnt != dsc->stp_cnt)
-     {
-          fprintf (stderr, "Layout     \t Unreliable\n") ;
-          return 1 ;
-     }
+          return 2 ;
      else if (dsc->dec_cnt % dsc->stp_cnt != 0)
-     {
-          fprintf (stderr, "Layout     \t Unreliable\n") ;
-          return 1 ;
-     }
+          return 2 ;
 
      unsigned char reg_cnt = dsc->stp_cnt ;
      unsigned char spk_cnt = dsc->dec_cnt ;
@@ -379,10 +370,7 @@ static int eval_reg (DSC *dsc)
           dec_num += dpr_cnt ;
 
           if (ipr_cnt != spr_cnt || dpr_cnt != spr_cnt)
-          {
-               fprintf (stderr, "Layout     \t Unreliable\n") ;
-               return 1 ;
-          }
+               return 2 ;
      }
 
      return 0 ;
@@ -425,7 +413,7 @@ static int eval_spk (DSC *dsc, SPK *spk)
      return 0 ;
 }
 
-int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc)
+int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc, SPK *spk)
 {
      seek_brk (mds, dpm, dsc) ;
 
@@ -454,32 +442,24 @@ int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc)
 
      if (dsc->inc_cnt)
           calc_inc_amp (mds, dpm, dsc) ;
-
      if (dsc->dec_cnt)
           calc_dec_amp (mds, dpm, dsc) ;
 
      seek_reg (mds, dsc) ;
-     eval_reg (dsc) ;
 
-     unsigned char spr_cnt = 0 ;
+     dsc->dpm_cat = eval_reg (dsc) ;
+     if (dsc->dpm_cat != 0)
+          return 1 ;
 
-     if (dsc->stp_cnt)
-          spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;
+     unsigned char spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;
 
-     SPK *spk = calloc (spr_cnt, sizeof (SPK)) ;
-     if (spk == NULL)
-     {
-          free (dpm) ;
-          dpm = NULL ;
-          exit (EXIT_FAILURE) ;
-     }
+     SPK *spk_realloc = realloc (spk, spr_cnt * sizeof (SPK)) ;
+     if (spk_realloc == NULL)
+          return 2 ;
+
+     spk = spk_realloc ;
 
      eval_spk (dsc, spk) ;
-
-     save_log (mds, dpm, dsc, spk) ;
-
-     free (spk) ;
-     spk = NULL ;
 
      return 0 ;
 }

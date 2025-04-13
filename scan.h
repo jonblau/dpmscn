@@ -25,7 +25,6 @@
 # include <math.h>
 
 # include "type.h"
-# include "log.h"
 
 static int seek_brk (MDS *mds, DPM *dpm, DSC *dsc) ;
 static int seek_spk (MDS *mds, DPM *dpm, DSC *dsc, int layer) ;
@@ -36,6 +35,6 @@ static int seek_reg (MDS *mds, DSC *dsc) ;
 static int eval_reg (DSC *dsc) ;
 static int eval_spk (DSC *dsc, SPK *spk) ;
 
-int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc) ;
+int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc, SPK *spk) ;
 
 # endif
