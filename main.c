@@ -32,6 +32,10 @@
 
 int main (int argc, char **argv)
 {
+     FILE *file = NULL ;
+     DPM *dpm = NULL ;
+     SPK *spk = NULL ;
+
      int error = 0 ;
 
      if (argc < 2)
@@ -39,7 +43,7 @@ int main (int argc, char **argv)
 
      char *path = argv[1] ;
 
-     FILE *file = fopen (path, "rb") ;
+     file = fopen (path, "rb") ;
      if (file == NULL)
           { error = 2 ; goto quit ; }
 
@@ -47,14 +51,13 @@ int main (int argc, char **argv)
 
      read_mds (file, &mds) ;
 
-     DPM *dpm = calloc (mds.smp, sizeof (DPM)) ;
+     dpm = calloc (mds.smp, sizeof (DPM)) ;
      if (dpm == NULL)
           { error = 3 ; goto quit ; }
 
      read_dpm (file, &mds, dpm) ;
 
      fclose (file) ;
-     file = NULL ;
 
      # if LINUX
 
@@ -76,7 +79,7 @@ int main (int argc, char **argv)
 
      DSC dsc = {0} ;
 
-     SPK *spk = calloc (1, sizeof (SPK)) ;
+     spk = calloc (1, sizeof (SPK)) ;
      if (spk == NULL)
           { error = 4 ; goto quit ; }
 
