@@ -73,10 +73,6 @@ int main (int argc, char **argv)
           return 0 ;
      }
 
-     # else
-
-     draw_dpm (&mds, dpm) ;
-
      # endif
 
      DSC dsc = {0} ;
@@ -85,6 +81,12 @@ int main (int argc, char **argv)
           { error = 4 ; goto quit ; }
 
      save_log (&mds, dpm, &dsc, spk) ;
+
+     # if WINDOWS
+
+     draw_dpm (&mds, dpm) ;
+
+     # endif
 
      quit :
 
