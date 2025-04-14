@@ -21,11 +21,17 @@
 
 int get_name (char *path, char **name)
 {
-     *name = calloc (strlen (path) + 1, sizeof (char)) ;
-     if (name == NULL)
+     unsigned int len = strlen (path) ;
+     char *ext = path + (len - 4) ;
+
+     if (strcmp (ext, ".mds") != 0)
           return 1 ;
 
-     strncpy (*name, path, strlen (path) - 4) ;
+     *name = calloc (len + 1, sizeof (char)) ;
+     if (name == NULL)
+          return 2 ;
+
+     strncpy (*name, path, len - 4) ;
 
      return 0 ;
 }
