@@ -19,6 +19,17 @@
 
 # include "parse.h"
 
+int get_name (char *path, char **name)
+{
+     *name = calloc (strlen (path) + 1, sizeof (char)) ;
+     if (name == NULL)
+          return 1 ;
+
+     strncpy (*name, path, strlen (path) - 4) ;
+
+     return 0 ;
+}
+
 int read_mds (FILE *file, MDS *mds)
 {
      char file_id[16] ;

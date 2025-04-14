@@ -57,7 +57,7 @@ static int calc_var_crv (MDS *mds, DPM *dpm, SDL_Point *variation, int smp_stt, 
      return 0 ;
 }
 
-bool draw_dpm (MDS *mds, DPM *dpm)
+bool draw_dpm (MDS *mds, DPM *dpm, char *name)
 {
      SDL_Window *window = NULL ;
      SDL_Renderer *renderer = NULL ;
@@ -172,13 +172,22 @@ bool draw_dpm (MDS *mds, DPM *dpm)
 
      /* exporting */
 
+     char *name_bmp = calloc (strlen (name) + 5, sizeof (char)) ;
+     if (name_bmp == NULL)
+          return true ;
+
+     strcpy (name_bmp, name) ;
+     strcat (name_bmp, ".bmp") ;
+
      SDL_Surface *surface = NULL ;
 
      surface = SDL_GetWindowSurface (window) ;
      if (surface == NULL) { error = true ; goto quit ; }
 
-     action = SDL_SaveBMP (surface, "scan.bmp") ;
+     action = SDL_SaveBMP (surface, name_bmp) ;
      if (action != 0) { error = true ; goto quit ; }
+
+     free (name_bmp) ;
 
      /* waiting */
 

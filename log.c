@@ -161,11 +161,20 @@ static int save_dpm (FILE *file, MDS *mds, DPM *dpm, DSC *dsc)
      return 0 ;
 }
 
-int save_log (MDS *mds, DPM *dpm, DSC *dsc, SPK *spk)
+int save_log (MDS *mds, DPM *dpm, DSC *dsc, SPK *spk, char *name)
 {
-     FILE *file = fopen ("scan.log", "w") ;
-     if (file == NULL)
+     char *name_log = calloc (strlen (name) + 5, sizeof (char)) ;
+     if (name_log == NULL)
           return 1 ;
+
+     strcpy (name_log, name) ;
+     strcat (name_log, ".log") ;
+
+     FILE *file = fopen (name_log, "w") ;
+     if (file == NULL)
+          return 2 ;
+
+     free (name_log) ;
 
      save_dsc (file, mds, dpm, dsc) ;
      save_reg (file, dsc) ;

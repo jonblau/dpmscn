@@ -22,6 +22,7 @@
 
 # include <stdio.h>
 # include <stdlib.h>
+# include <string.h>
 
 # include "type.h"
 
@@ -30,6 +31,6 @@ static int save_reg (FILE *file, DSC *dsc) ;
 static int save_spk (FILE *file, DSC *dsc, SPK *spk) ;
 static int save_dpm (FILE *file, MDS *mds, DPM *dpm, DSC *dsc) ;
 
-int save_log (MDS *mds, DPM *dpm, DSC *dsc, SPK *spk) ;
+int save_log (MDS *mds, DPM *dpm, DSC *dsc, SPK *spk, char *name) ;
 
 # endif

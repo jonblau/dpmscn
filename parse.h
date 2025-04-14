@@ -26,6 +26,7 @@
 
 # include "type.h"
 
+int get_name (char *path, char **name) ;
 int read_mds (FILE *file, MDS *mds) ;
 int read_dpm (FILE *file, MDS *mds, DPM *dpm) ;
 

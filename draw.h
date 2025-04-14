@@ -21,6 +21,8 @@
 # define DRAW_H
 
 # include <stdbool.h>
+# include <stdlib.h>
+# include <string.h>
 # include <SDL.h>
 
 # include "type.h"
@@ -28,6 +30,6 @@
 static int calc_tim_crv (MDS *mds, DPM *dpm, SDL_Point *timing, int smp_stt, int smp_stp) ;
 static int calc_var_crv (MDS *mds, DPM *dpm, SDL_Point *variation, int smp_stt, int smp_stp) ;
 
-bool draw_dpm (MDS *mds, DPM *dpm) ;
+bool draw_dpm (MDS *mds, DPM *dpm, char *name) ;
 
 # endif

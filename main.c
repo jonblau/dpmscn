@@ -33,6 +33,7 @@
 int main (int argc, char **argv)
 {
      FILE *file = NULL ;
+     char *name = NULL ;
      DPM *dpm = NULL ;
      SPK *spk = NULL ;
 
@@ -43,9 +44,12 @@ int main (int argc, char **argv)
 
      char *path = argv[1] ;
 
+     if (get_name (path, &name) != 0)
+          { error = 2 ; goto quit ; }
+
      file = fopen (path, "rb") ;
      if (file == NULL)
-          { error = 2 ; goto quit ; }
+          { error = 3 ; goto quit ; }
 
      MDS mds = {0} ;
 
@@ -53,7 +57,7 @@ int main (int argc, char **argv)
 
      dpm = calloc (mds.smp, sizeof (DPM)) ;
      if (dpm == NULL)
-          { error = 3 ; goto quit ; }
+          { error = 4 ; goto quit ; }
 
      read_dpm (file, &mds, dpm) ;
 
@@ -65,7 +69,7 @@ int main (int argc, char **argv)
      int pid = fork () ;
      if (pid == 0)
      {
-          draw_dpm (&mds, dpm) ;
+          draw_dpm (&mds, dpm, name) ;
 
           free (dpm) ;
           dpm = NULL ;
@@ -78,13 +82,14 @@ int main (int argc, char **argv)
      DSC dsc = {0} ;
 
      if (eval_dpm (&mds, dpm, &dsc, &spk) == 2)
-          { error = 4 ; goto quit ; }
+          { error = 5 ; goto quit ; }
 
-     save_log (&mds, dpm, &dsc, spk) ;
+     if (save_log (&mds, dpm, &dsc, spk, name) != 0)
+          { error = 6 ; goto quit ; }
 
      # if WINDOWS
 
-     draw_dpm (&mds, dpm) ;
+     draw_dpm (&mds, dpm, name) ;
 
      # endif
 
@@ -94,6 +99,8 @@ int main (int argc, char **argv)
           free (spk) ;
      if (dpm != NULL)
           free (dpm) ;
+     if (name != NULL)
+          free (name) ;
      if (file != NULL)
           fclose (file) ;
      if (error != 0)
