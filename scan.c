@@ -413,7 +413,7 @@ static int eval_spk (DSC *dsc, SPK *spk)
      return 0 ;
 }
 
-int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc, SPK *spk)
+int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc, SPK **spk)
 {
      seek_brk (mds, dpm, dsc) ;
 
@@ -453,13 +453,11 @@ int eval_dpm (MDS *mds, DPM *dpm, DSC *dsc, SPK *spk)
 
      unsigned char spr_cnt = dsc->dec_cnt / dsc->stp_cnt ;
 
-     SPK *spk_realloc = realloc (spk, spr_cnt * sizeof (SPK)) ;
-     if (spk_realloc == NULL)
+     *spk = calloc (spr_cnt, sizeof (SPK)) ;
+     if (*spk == NULL)
           return 2 ;
 
-     spk = spk_realloc ;
-
-     eval_spk (dsc, spk) ;
+     eval_spk (dsc, *spk) ;
 
      return 0 ;
 }

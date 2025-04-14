@@ -81,11 +81,7 @@ int main (int argc, char **argv)
 
      DSC dsc = {0} ;
 
-     spk = calloc (1, sizeof (SPK)) ;
-     if (spk == NULL)
-          { error = 4 ; goto quit ; }
-
-     eval_dpm (&mds, dpm, &dsc, spk) ;
+     eval_dpm (&mds, dpm, &dsc, &spk) ;
      save_log (&mds, dpm, &dsc, spk) ;
 
      quit :
