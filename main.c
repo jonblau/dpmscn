@@ -81,7 +81,9 @@ int main (int argc, char **argv)
 
      DSC dsc = {0} ;
 
-     eval_dpm (&mds, dpm, &dsc, &spk) ;
+     if (eval_dpm (&mds, dpm, &dsc, &spk) == 2)
+          { error = 4 ; goto quit ; }
+
      save_log (&mds, dpm, &dsc, spk) ;
 
      quit :
