@@ -16,6 +16,16 @@ Usage
 -----
 
  Drag and drop a file on 'scan'
+   or open a terminal and execute : scan [*.mds]
+
+ Press the Escape key to close the window
+
+Compilation
+-----------
+
+ sudo apt install build-essential libsdl2-dev
+
+ gcc src/*.c -o bin/scan -l m $(sdl2-config --cflags --libs) -D LINUX
 
 License
 -------
